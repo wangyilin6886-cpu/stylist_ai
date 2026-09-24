@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STAIL Web Mockup</title>
+<style>
+@font-face{font-family:'Caveat';src:url(fonts/caveat.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Caveat Brush';src:url(fonts/caveat-brush.woff2) format('woff2');font-display:swap}
+@font-face{font-family:'Libre Baskerville';src:url(fonts/libre-baskerville.woff2) format('woff2');font-display:swap}
+@font-face{font-family:'Libre Baskerville';src:url(fonts/libre-baskerville-italic.woff2) format('woff2');font-style:italic;font-display:swap}
+/* =========================================================
+   STAIL — Design tokens (pulled from the PPT)
+   ========================================================= */
+:root{
+  --cream:#F1E9DC;          /* old paper background */
+  --cream-2:#E6DAC6;        /* book page */
+  --magenta:#C23F7E;        /* brush-stroke magenta */
+  --magenta-deep:#A8306A;
+  --ink:#9C1F57;            /* title/body text raspberry */
+  --pink-paper:#F7CFE2;     /* torn pink card */
+  --pink-light:#FCE7F0;     /* notebook pink */
+  --halftone:#E4A6C5;       /* halftone panel base */
+  --tape:#D9C49C;           /* masking tape */
+  --fabric:#E8386D;         /* hot pink fabric swatch */
+  --plaid:#E0433F;          /* napkin red */
+  --polaroid:#FBFAF6;
+  --sticky:#F7EDA4;         /* yellow sticky tape */
+  --line-blue:#C9D3E3;
+
+  --font-title:'Caveat Brush', 'Comic Sans MS', cursive;
+  --font-hand:'Caveat', 'Comic Sans MS', cursive;
+  --font-book:'Libre Baskerville', Georgia, serif;
+
+  --noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .32  0 0 0 0 .28  0 0 0 .33 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --jag: polygon(1.5% 0,98.5% 0,100% 12%,97.5% 26%,100% 42%,97.8% 58%,100% 74%,97.5% 88%,98.5% 100%,1.5% 100%,0 88%,2.4% 74%,0 58%,2.2% 42%,0 26%,2.5% 12%);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+html{overflow-x:clip}
+body{
+  background:var(--cream);
+  color:var(--ink);
+  font-family:var(--font-hand);
+  font-size:1.35rem;
+  line-height:1.25;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+/* paper grain over everything */
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background-image:var(--noise);mix-blend-mode:multiply;opacity:.35;
+}
+img{max-width:100%}
+button,input,select{font:inherit;color:inherit}
+
+/* =========================================================
+   Background collage (fixed layer behind every screen)
+   ========================================================= */
+.collage{position:fixed;inset:0;z-index:-1;overflow:hidden;background:var(--cream)}
+.collage > *{position:absolute}
+.torn{filter:url(#torn)}
+.torn-soft{filter:url(#torn-soft)}
+.stroke{
+  background:
+    repeating-linear-gradient(90deg, transparent 0 18px, rgba(241,233,220,.55) 18px 22px, transparent 22px 46px),
+    var(--magenta);
+}
+.c-stroke1{left:17%;top:-5%;width:14vw;height:78vh;opacity:.95}
+.c-stroke2{left:34%;top:10%;width:9vw;height:75vh;background:var(--magenta-deep)}
+.c-halftone{
+  right:-4%;top:12%;width:62vw;height:70vh;
+  background:radial-gradient(circle, rgba(168,48,106,.55) 1.35px, transparent 1.7px) 0 0/7px 7px, var(--halftone);
+  clip-path:polygon(3% 2%,20% 0,45% 3%,70% 0,100% 2%,100% 98%,70% 100%,40% 97%,15% 100%,0 96%,2% 70%,0 45%,3% 20%);
+}
+.c-bottom{left:-5%;bottom:-8%;width:110vw;height:34vh;background:var(--magenta);}
+.c-bottom2{left:30%;bottom:-4%;width:60vw;height:22vh;background:#D46699;}
+.c-left{left:-4%;top:40%;width:26vw;height:36vh;background:var(--magenta-deep)}
+.c-book{
+  font-family:var(--font-book);font-size:15px;line-height:1.6;color:#3d3530;
+  background:var(--cream-2);padding:14px 22px;width:360px;
+  clip-path:polygon(0 6%,8% 0,20% 5%,35% 1%,52% 6%,70% 0,86% 5%,100% 2%,100% 94%,88% 100%,70% 95%,52% 100%,33% 94%,15% 100%,0 95%);
+}
+.c-book.b1{left:-60px;top:-40px;transform:rotate(-78deg);transform-origin:center;top:60px}
+.c-book.b2{right:-80px;bottom:40px;transform:rotate(88deg)}
+.c-plaid{
+  left:40%;top:-16vh;width:26vw;height:26vw;min-width:200px;min-height:200px;transform:rotate(45deg);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 30px, rgba(224,67,63,.75) 30px 32px, transparent 32px 36px, rgba(224,67,63,.75) 36px 38px, transparent 38px 90px),
+    repeating-linear-gradient(90deg, transparent 0 30px, rgba(224,67,63,.75) 30px 32px, transparent 32px 36px, rgba(224,67,63,.75) 36px 38px, transparent 38px 90px),
+    #F7F1EA;
+  box-shadow:0 4px 10px rgba(0,0,0,.15);
+}
+.c-lace{right:-10px;top:-10px;width:44vw;height:170px;opacity:.95}
+.c-lace2{left:-20px;bottom:6vh;width:30vw;height:150px;transform:rotate(-8deg);opacity:.9}
+
+/* =========================================================
+   Material components
+   ========================================================= */
+
+/* masking tape */
+.tape{
+  display:inline-block;position:relative;
+  padding:.18em .9em .25em;
+  background:
+    linear-gradient(100deg, rgba(255,255,255,.22), transparent 35%, rgba(90,60,20,.06) 60%, transparent 80%),
+    var(--noise),
+    var(--tape);
+  clip-path:var(--jag);
+  color:var(--ink);
+}
+.tape.sm{padding:.1em .7em .15em}
+.tape.yellow{background:var(--noise),rgba(247,237,164,.9)}
+.tilt-l{transform:rotate(-2.2deg)}
+.tilt-r{transform:rotate(1.8deg)}
+
+h1,h2,h3{font-family:var(--font-title);font-weight:400;margin:0;line-height:1;letter-spacing:.01em}
+h1{font-size:clamp(3rem, 8vw, 6.6rem)}
+h2{font-size:clamp(2.4rem, 5.5vw, 4.4rem)}
+h3{font-size:1.7rem;text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:2px;margin-bottom:.35em}
+
+/* torn pink paper */
+.paper{position:relative;isolation:isolate;padding:1.6rem 1.7rem 1.8rem}
+.paper::before{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:var(--noise),var(--pink-paper);
+  filter:url(#torn);
+  box-shadow:0 6px 14px rgba(120,20,70,.18);
+}
+.paper.light::before{background:var(--noise),var(--pink-light)}
+
+/* lined notebook */
+.note{
+  position:relative;padding:1.4rem 1.5rem 1.6rem 3.2rem;
+  background:
+    linear-gradient(90deg, transparent 2.3rem, #E8A3BE 2.3rem calc(2.3rem + 2px), transparent calc(2.3rem + 2px)),
+    repeating-linear-gradient(#FBF6EE 0 29px, var(--line-blue) 29px 30px);
+  background-position:0 0, 0 .95rem;
+  box-shadow:0 6px 16px rgba(80,20,50,.2);
+  line-height:30px;
+}
+.note::before{ /* punched holes */
+  content:"";position:absolute;left:.6rem;top:1rem;bottom:1rem;width:14px;
+  background:radial-gradient(circle, #d9cfc3 5px, transparent 6px) 0 0/14px 64px repeat-y;
+}
+/* pink grid notebook with rings on top */
+.grid-note{
+  position:relative;padding:2.4rem 1.5rem 1.6rem;margin-top:14px;
+  background:
+    repeating-linear-gradient(0deg, rgba(214,120,160,.28) 0 1px, transparent 1px 18px),
+    repeating-linear-gradient(90deg, rgba(214,120,160,.28) 0 1px, transparent 1px 18px),
+    #FDF3F7;
+  border:7px solid #F4B6D1;
+  box-shadow:0 6px 16px rgba(80,20,50,.2);
+}
+.grid-note::before{
+  content:"";position:absolute;left:10px;right:10px;top:-16px;height:28px;
+  background:
+    radial-gradient(ellipse 6px 12px at 50% 50%, #F07FB0 70%, transparent 76%) 0 0/24px 28px repeat-x;
+}
+
+/* polaroid */
+.polaroid{
+  position:relative;background:var(--polaroid);padding:12px 12px 44px;
+  box-shadow:0 8px 18px rgba(60,20,40,.25);
+}
+.polaroid .cap{position:absolute;left:0;right:0;bottom:6px;margin:0;text-align:center;font-size:1.4rem}
+.polaroid > .tape{position:absolute;top:-14px;left:50%;transform:translateX(-50%) rotate(-3deg);width:90px;height:28px;padding:0}
+
+/* hot-pink fabric swatch with pinking-shear edges */
+.fabric{
+  --z:9px;
+  position:relative;color:#FFF3F6;padding:2rem 1.6rem;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.09) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(90,0,30,.10) 0 1px, transparent 1px 3px),
+    var(--fabric);
+  -webkit-mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top/calc(2*var(--z)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom/calc(2*var(--z)) 51% repeat-x;
+          mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top/calc(2*var(--z)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom/calc(2*var(--z)) 51% repeat-x;
+}
+
+/* stickers (SVG with white cut-out edge) */
+.sticker{position:absolute;filter:drop-shadow(0 0 0 #fff) drop-shadow(2px 3px 4px rgba(60,10,30,.3));pointer-events:none}
+.sticker.cut{filter:drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(2px 4px 5px rgba(60,10,30,.3))}
+
+ul.dots{margin:0;padding-left:1.1em}
+ul.dots li{margin:.2em 0}
+ul.dots li::marker{content:"• ";color:var(--ink)}
+
+/* buttons */
+.btn{
+  border:0;cursor:pointer;font-family:var(--font-title);font-size:1.6rem;
+  padding:.35em 1.2em .45em;line-height:1;
+  transition:transform .18s ease, filter .18s ease;
+}
+.btn:hover{transform:rotate(-2deg) translateY(-2px)}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible{outline:3px dashed var(--ink);outline-offset:4px}
+.btn-primary{
+  background:
+    repeating-linear-gradient(90deg, transparent 0 12px, rgba(255,255,255,.08) 12px 14px),
+    var(--magenta);
+  color:#FFF4F8;clip-path:var(--jag);
+}
+.btn-tape{background:linear-gradient(100deg, rgba(255,255,255,.25), transparent 40%),var(--noise),var(--tape);color:var(--ink);clip-path:var(--jag)}
+.btn[disabled]{filter:grayscale(.7) opacity(.55);cursor:not-allowed;transform:none}
+
+/* handwritten inputs */
+.field{display:block;margin:.1rem 0 .5rem}
+.field span{display:block;font-weight:700}
+.field input{
+  width:100%;border:0;border-bottom:2px dashed var(--ink);background:transparent;
+  padding:.1em .1em;font-size:1.35rem;outline:none;line-height:28px;
+}
+.field input:focus{border-bottom-style:solid}
+
+/* occasion chips */
+.chip{
+  border:0;cursor:pointer;font-family:var(--font-hand);font-weight:700;font-size:1.3rem;
+  padding:.15em .9em;background:var(--noise),var(--tape);clip-path:var(--jag);color:var(--ink);
+  transition:transform .15s;
+}
+.chip[aria-pressed="true"]{background:var(--noise),var(--fabric);color:#fff}
+.chip:hover{transform:translateY(-2px) rotate(-1.5deg)}
+
+/* =========================================================
+   Layout
+   ========================================================= */
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px 120px}
+
+/* top nav: torn cream strip with tape tabs */
+.nav{
+  position:sticky;top:0;z-index:20;margin-bottom:28px;
+  padding:14px 16px 20px;
+  isolation:isolate;
+}
+.nav::before{
+  content:"";position:absolute;inset:0 -20px 0;z-index:-1;
+  background:var(--noise),#F6EFE4;filter:url(#torn-soft);
+  box-shadow:0 4px 12px rgba(80,20,50,.18);
+}
+.nav-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-family:var(--font-title);font-size:2.2rem;color:var(--ink);text-decoration:none;margin-right:auto}
+.logo small{font-family:var(--font-hand);font-size:1.05rem;margin-left:.4em}
+.nav button{
+  border:0;background:transparent;cursor:pointer;font-family:var(--font-hand);font-weight:700;font-size:1.35rem;color:var(--ink);
+  padding:.1em .6em;
+}
+.nav button[aria-current="page"]{background:var(--noise),var(--tape);clip-path:var(--jag)}
+.nav button:hover{text-decoration:underline wavy;text-underline-offset:5px}
+
+.screen{display:none;animation:drop .45s ease}
+.screen.on{display:block}
+@keyframes drop{from{opacity:0;transform:translateY(10px) rotate(-.4deg)}to{opacity:1;transform:none}}
+
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:34px}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.center{text-align:center}
+.mt{margin-top:48px}
+
+/* ---------- Welcome ---------- */
+.hero{position:relative;min-height:540px;padding-top:40px}
+.hero .by{font-size:2rem;transform:rotate(-2deg);margin-left:30px}
+.hero .title{display:block;margin-top:14px;padding:.25em .6em .35em;transform:rotate(-1deg);max-width:880px;line-height:.95}
+.hero .tagline{font-size:1.8rem;background:rgba(251,246,238,.85);display:inline-block;padding:.2em .6em;margin:26px 0 22px 20px;transform:rotate(-1deg)}
+.hero .cta{margin-left:20px}
+.feature{min-height:250px}
+.feature .num{font-family:var(--font-title);font-size:3rem;opacity:.35;position:absolute;right:20px;top:6px}
+.auth{max-width:520px;margin:60px auto 0}
+.auth-tabs{display:flex;gap:10px;margin-bottom:6px}
+.auth-tabs button{border:0;background:none;cursor:pointer;font-family:var(--font-title);font-size:1.7rem;color:var(--ink);opacity:.5;padding:0 .3em}
+.auth-tabs button[aria-selected="true"]{opacity:1;text-decoration:underline;text-underline-offset:5px}
+
+/* ---------- Dashboard ---------- */
+.upload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:38px;margin-top:40px}
+.upload-grid .polaroid:nth-child(1){transform:rotate(-2.5deg)}
+.upload-grid .polaroid:nth-child(2){transform:rotate(1.5deg)}
+.upload-grid .polaroid:nth-child(3){transform:rotate(-1deg)}
+.drop{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  aspect-ratio:4/5;cursor:pointer;text-align:center;padding:14px;overflow:hidden;
+  background:radial-gradient(circle, rgba(194,63,126,.25) 1.2px, transparent 1.6px) 0 0/8px 8px, #FBEFF4;
+  border:2px dashed var(--ink);
+}
+.drop:hover,.drop.drag{background-color:#F7DCE8}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop img.preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.drop .big{font-family:var(--font-title);font-size:1.9rem}
+.drop .step{position:absolute;top:8px;left:10px;font-family:var(--font-title);font-size:1.4rem}
+.consent{display:flex;gap:14px;align-items:flex-start;max-width:720px;margin:56px auto 0;transform:rotate(-.6deg)}
+.consent input{width:26px;height:26px;accent-color:var(--magenta);margin-top:6px;flex:none}
+
+/* ---------- Results ---------- */
+.results{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;margin-top:40px}
+@media (max-width:860px){.results{grid-template-columns:1fr}}
+.season{font-family:var(--font-title);font-size:2.6rem;line-height:1}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0 6px}
+.sw{--z:5px;aspect-ratio:1;display:flex;align-items:flex-end;justify-content:center;font-size:1rem;font-weight:700;padding-bottom:6px;color:rgba(255,255,255,.95);
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.1) 0 1px, transparent 1px 3px), var(--c);
+  -webkit-mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/calc(2*var(--z)) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--z)) 51% repeat-x;
+          mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/calc(2*var(--z)) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--z)) 51% repeat-x;
+}
+.sw.dark{color:#fff}
+.sw.light{color:var(--ink)}
+.avoid .sw{position:relative;opacity:.8}
+.avoid .sw::after{content:"";position:absolute;inset:40% -10%;border-top:3px solid var(--ink);transform:rotate(-35deg)}
+.meter{height:14px;background:#fff;border:2px solid var(--ink);margin:.4rem 0 .2rem;position:relative}
+.meter > i{position:absolute;inset:0 auto 0 0;background:repeating-linear-gradient(45deg,var(--magenta) 0 6px,#D46699 6px 12px)}
+.body-sil{float:right;width:110px;margin:0 0 6px 12px}
+
+/* ---------- Wardrobe ---------- */
+.ward{display:grid;grid-template-columns:320px 1fr;gap:44px;margin-top:34px}
+@media (max-width:900px){.ward{grid-template-columns:1fr}}
+.closet{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.item{background:var(--polaroid);padding:6px 6px 22px;box-shadow:0 4px 10px rgba(60,20,40,.2);position:relative;text-align:center;font-size:1rem}
+.item:nth-child(odd){transform:rotate(-2deg)}
+.item:nth-child(3n){transform:rotate(2deg)}
+.item svg{width:100%;aspect-ratio:1;background:#F5EEE6;display:block}
+.item span{position:absolute;left:0;right:0;bottom:2px}
+.item.add{display:flex;align-items:center;justify-content:center;font-family:var(--font-title);font-size:2.2rem;border:2px dashed var(--ink);background:transparent;box-shadow:none;cursor:pointer;min-height:100px}
+.looks{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:34px}
+.look .pieces{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:6px 0 10px;line-height:1.2}
+.look .pieces div{background:#fff;border:1.5px solid rgba(156,31,87,.25);padding:6px;text-align:center;font-size:1rem}
+.look .pieces svg{width:100%;height:78px}
+.look .why{font-size:1.2rem;line-height:30px}
+.look .save{background:none;border:0;cursor:pointer;font-size:1.6rem;color:var(--ink);float:right}
+.look .save[aria-pressed="true"]{color:var(--fabric)}
+.look:nth-child(1){transform:rotate(-1.2deg)}
+.look:nth-child(2){transform:rotate(1deg)}
+.look:nth-child(3){transform:rotate(-.5deg)}
+
+.pagehead{position:relative;display:inline-block;padding:.15em .6em .3em;transform:rotate(-1.5deg);margin-top:10px}
+.sub{display:inline-block;background:rgba(251,246,238,.88);padding:.15em .6em;margin-top:18px;font-size:1.5rem}
+
+footer{text-align:center;margin-top:70px}
+
+@media (max-width:600px){
+  body{font-size:1.25rem}
+  .c-book{display:none}
+  .hero{min-height:0}
+  .hero .by{margin-left:0}
+  .hero .tagline,.hero .cta{margin-left:0}
+  .hide-sm{display:none}
+  .closet{grid-template-columns:repeat(3,1fr)}
+  .nav{padding:10px 12px 16px}
+  .nav-in{gap:4px 6px}
+  .logo{font-size:1.8rem;flex-basis:100%}
+  .logo small{display:none}
+  .nav button{font-size:1.15rem;padding:.05em .45em}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ shared SVG defs: filters, patterns, garment icons ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="torn" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="4" seed="7"/>
+      <feDisplacementMap in="SourceGraphic" scale="16" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="torn-soft" x="-5%" y="-20%" width="110%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="3" seed="2"/>
+      <feDisplacementMap in="SourceGraphic" scale="9"/>
+    </filter>
+    <pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="1.5" fill="#F7E9EF"/>
+    </pattern>
+    <pattern id="lacePat" width="60" height="60" patternUnits="userSpaceOnUse">
+      <circle cx="30" cy="30" r="16" fill="none" stroke="#FAF5EC" stroke-width="3"/>
+      <circle cx="30" cy="30" r="8" fill="none" stroke="#FAF5EC" stroke-width="2"/>
+      <circle cx="30" cy="30" r="3" fill="#FAF5EC"/>
+      <circle cx="0" cy="0" r="6" fill="#FAF5EC"/><circle cx="60" cy="0" r="6" fill="#FAF5EC"/>
+      <circle cx="0" cy="60" r="6" fill="#FAF5EC"/><circle cx="60" cy="60" r="6" fill="#FAF5EC"/>
+      <path d="M30 0 L30 14 M30 46 L30 60 M0 30 L14 30 M46 30 L60 30" stroke="#FAF5EC" stroke-width="1.5"/>
+    </pattern>
+    <!-- garment icons -->
+    <symbol id="i-top" viewBox="0 0 100 100"><path d="M30 12 L42 7 Q50 16 58 7 L70 12 L92 28 L82 44 L72 38 L72 92 L28 92 L28 38 L18 44 L8 28 Z" stroke="#9C1F57" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pants" viewBox="0 0 100 100"><path d="M28 6 L72 6 L78 94 L58 94 L50 38 L42 94 L22 94 Z" stroke="#9C1F57" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-skirt" viewBox="0 0 100 100"><path d="M34 14 L66 14 L86 86 L14 86 Z" stroke="#9C1F57" stroke-width="2.5" stroke-linejoin="round"/><path d="M34 22 L66 22" stroke="#9C1F57" stroke-width="2"/></symbol>
+    <symbol id="i-dress" viewBox="0 0 100 100"><path d="M38 6 L44 6 Q50 14 56 6 L62 6 L60 32 L82 92 L18 92 L40 32 Z" stroke="#9C1F57" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-shoe" viewBox="0 0 100 100"><path d="M10 64 L12 38 Q24 36 32 44 Q52 58 80 60 Q92 62 92 74 L92 78 L10 78 Z" stroke="#9C1F57" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 100 100"><path d="M34 42 Q34 18 50 18 Q66 18 66 42" fill="none" stroke="#9C1F57" stroke-width="4"/><path d="M18 40 L82 40 L88 90 L12 90 Z" stroke="#9C1F57" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-coat" viewBox="0 0 100 100"><path d="M32 8 L50 20 L68 8 L90 24 L84 94 L16 94 L10 24 Z" stroke="#9C1F57" stroke-width="2.5" stroke-linejoin="round"/><path d="M50 20 L50 94" stroke="#9C1F57" stroke-width="2"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ background collage ============ -->
+<div class="collage" aria-hidden="true">
+  <div class="c-halftone"></div>
+  <div class="c-stroke1 stroke torn"></div>
+  <div class="c-stroke2 stroke torn"></div>
+  <div class="c-left torn"></div>
+  <div class="c-plaid"></div>
+  <svg class="c-lace" viewBox="0 0 600 170" preserveAspectRatio="none">
+    <rect width="600" height="130" fill="url(#lacePat)"/>
+    <g fill="#FAF5EC">
+      <circle cx="30" cy="130" r="30"/><circle cx="90" cy="130" r="30"/><circle cx="150" cy="130" r="30"/><circle cx="210" cy="130" r="30"/><circle cx="270" cy="130" r="30"/><circle cx="330" cy="130" r="30"/><circle cx="390" cy="130" r="30"/><circle cx="450" cy="130" r="30"/><circle cx="510" cy="130" r="30"/><circle cx="570" cy="130" r="30"/>
+    </g>
+  </svg>
+  <div class="c-bottom torn"></div>
+  <div class="c-bottom2 torn"></div>
+  <svg class="c-lace2" viewBox="0 0 400 150" preserveAspectRatio="none">
+    <rect y="40" width="400" height="110" fill="url(#lacePat)"/>
+    <g fill="#FAF5EC"><circle cx="25" cy="40" r="25"/><circle cx="75" cy="40" r="25"/><circle cx="125" cy="40" r="25"/><circle cx="175" cy="40" r="25"/><circle cx="225" cy="40" r="25"/><circle cx="275" cy="40" r="25"/><circle cx="325" cy="40" r="25"/><circle cx="375" cy="40" r="25"/></g>
+  </svg>
+  <p class="c-book b1">in little time the tailor had drawn the cloth, and with a needle as fine as a whisker he did what no one could. Well, thought she, the shop will never be the same again, for the dress had…</p>
+  <p class="c-book b2">…and so she laid the ribbons out on the table, although the hour was late. Some said it was the colour of the morning that made her choose, others that it was simply her way.</p>
+</div>
+
+<!-- ============ NAV ============ -->
+<nav class="nav" aria-label="Main">
+  <div class="nav-in">
+    <a class="logo" href="#welcome" data-go="welcome">“STAIL” <small>personal AI stylist</small></a>
+    <button data-go="welcome">Home</button>
+    <button data-go="dashboard">Upload</button>
+    <button data-go="results">My Analysis</button>
+    <button data-go="wardrobe">Wardrobe Styler</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- =====================================================
+     1. WELCOME
+     ===================================================== -->
+<section class="screen" id="welcome" aria-label="Welcome">
+  <div class="hero">
+    <span class="tape by">By: Nanami &amp; Clara</span><br>
+    <h1 class="tape title">“STAIL”<br>Personal AI Stylist</h1>
+    <p class="tagline">Your colours, your shape, your closet — styled by AI ✦</p>
+    <div class="row cta">
+      <button class="btn btn-primary" data-go-auth="signup">Get started</button>
+      <button class="btn btn-tape" data-go-auth="login">Log in</button>
+    </div>
+
+    <!-- stickers -->
+    <svg class="sticker cut hide-sm" style="right:40px;top:40px;width:190px" viewBox="0 0 120 120" aria-hidden="true">
+      <!-- compact mirror -->
+      <ellipse cx="62" cy="40" rx="42" ry="34" fill="#C98A52" stroke="#6B3A1C" stroke-width="3"/>
+      <ellipse cx="62" cy="40" rx="33" ry="26" fill="#E8C49C"/>
+      <ellipse cx="54" cy="34" rx="12" ry="7" fill="#F8E7D3" opacity=".8"/>
+      <ellipse cx="60" cy="86" rx="46" ry="26" fill="#B56E38" stroke="#6B3A1C" stroke-width="3"/>
+      <ellipse cx="60" cy="84" rx="36" ry="18" fill="#D99A5E"/>
+      <path d="M70 92 L96 70 L104 78 L80 102 Z" fill="#8A3B25"/>
+      <path d="M96 70 L112 56 L118 62 L104 78Z" fill="#5A2616"/>
+    </svg>
+    <svg class="sticker cut hide-sm" style="right:250px;top:250px;width:120px;transform:rotate(-30deg)" viewBox="0 0 60 160" aria-hidden="true">
+      <!-- lipstick -->
+      <path d="M14 20 L46 4 L46 60 L14 60 Z" fill="#D8353F"/><path d="M14 20 L46 4 L46 14 L14 30Z" fill="#F0717A" opacity=".6"/>
+      <rect x="10" y="60" width="40" height="24" fill="#C9A15A"/><rect x="8" y="84" width="44" height="72" fill="#2B1E1E"/>
+      <rect x="10" y="90" width="6" height="60" fill="#5b4545"/>
+    </svg>
+    <svg class="sticker" style="right:330px;top:100px;width:56px" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 4 C32 22 38 28 56 30 C38 32 32 38 30 56 C28 38 22 32 4 30 C22 28 28 22 30 4Z" fill="none" stroke="#fff" stroke-width="2.5"/></svg>
+    <svg class="sticker" style="right:420px;top:190px;width:38px" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 4 C32 22 38 28 56 30 C38 32 32 38 30 56 C28 38 22 32 4 30 C22 28 28 22 30 4Z" fill="none" stroke="#fff" stroke-width="3"/></svg>
+  </div>
+
+  <div class="center mt"><h2 class="tape pagehead">How STAIL works</h2></div>
+  <div class="grid3 mt">
+    <article class="paper feature">
+      <span class="num">01</span>
+      <h3>Color Analysis</h3>
+      <ul class="dots">
+        <li>Upload a selfie</li>
+        <li>AI reads skin tone, hair &amp; eye colour</li>
+        <li>Get your personal colour palette</li>
+      </ul>
+    </article>
+    <article class="paper feature" style="transform:rotate(1.2deg)">
+      <span class="num">02</span>
+      <h3>Body Type Analysis</h3>
+      <ul class="dots">
+        <li>Upload a full-body photo</li>
+        <li>AI identifies your body shape</li>
+        <li>Discover flattering silhouettes</li>
+      </ul>
+    </article>
+    <article class="paper feature" style="transform:rotate(-1deg)">
+      <span class="num">03</span>
+      <h3>Wardrobe Styler</h3>
+      <ul class="dots">
+        <li>Snap clothes you already own</li>
+        <li>AI builds outfit combinations</li>
+        <li>Looks for every occasion</li>
+      </ul>
+      <svg class="sticker" style="right:-26px;bottom:-30px;width:70px" viewBox="0 0 80 80" aria-hidden="true">
+        <circle cx="40" cy="40" r="36" fill="#F4D9CF" stroke="#C99A8C" stroke-width="3"/>
+        <circle cx="40" cy="40" r="27" fill="none" stroke="#DDB2A5" stroke-width="2"/>
+        <g fill="#E27B94"><circle cx="20" cy="30" r="3"/><circle cx="56" cy="22" r="3"/><circle cx="60" cy="52" r="3"/><circle cx="26" cy="58" r="3"/></g>
+        <g fill="#8A5A50"><circle cx="33" cy="33" r="4"/><circle cx="47" cy="33" r="4"/><circle cx="33" cy="47" r="4"/><circle cx="47" cy="47" r="4"/></g>
+      </svg>
+    </article>
+  </div>
+
+  <!-- Auth card -->
+  <div class="auth" id="auth">
+    <div class="note" style="transform:rotate(-.8deg)">
+      <svg class="sticker" style="right:-40px;top:-50px;width:120px;transform:rotate(12deg)" viewBox="0 0 120 90" aria-hidden="true">
+        <g fill="#E0508C" stroke="#9C1F57" stroke-width="2" stroke-linejoin="round">
+          <path d="M60 40 C40 8 4 12 10 40 C15 62 45 55 60 45Z"/><path d="M60 40 C80 8 116 12 110 40 C105 62 75 55 60 45Z"/>
+          <path d="M55 46 L34 86 L47 80 L54 89 L62 50Z"/><path d="M65 46 L86 86 L73 80 L66 89 L58 50Z"/>
+          <ellipse cx="60" cy="43" rx="9" ry="8"/>
+        </g>
+      </svg>
+      <div class="auth-tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-auth="signup">Sign up</button>
+        <button role="tab" aria-selected="false" data-auth="login">Log in</button>
+      </div>
+      <form id="authForm" onsubmit="event.preventDefault();go('dashboard')">
+        <label class="field" data-only="signup"><span>Your name</span><input placeholder="Nanami" autocomplete="name"></label>
+        <label class="field"><span>Email</span><input type="email" placeholder="you@example.com" autocomplete="email"></label>
+        <label class="field"><span>Password</span><input type="password" placeholder="••••••••"></label>
+        <div class="row" style="margin-top:14px">
+          <button class="btn btn-primary" type="submit" id="authSubmit">Create my account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     2. DASHBOARD / UPLOAD
+     ===================================================== -->
+<section class="screen" id="dashboard" aria-label="Upload">
+  <h2 class="tape pagehead">Hi Nanami, let’s get styled ♡</h2><br>
+  <p class="sub">Three photos, and STAIL does the rest.</p>
+
+  <div class="upload-grid">
+    <div class="polaroid">
+      <span class="tape yellow" aria-hidden="true"></span>
+      <label class="drop">
+        <span class="step">01</span>
+        <span class="big">Upload a selfie</span>
+        <span>Natural daylight, no filter, bare face if you can</span>
+        <input type="file" accept="image/*" data-up="selfie">
+      </label>
+      <p class="cap">for colour analysis</p>
+    </div>
+    <div class="polaroid">
+      <span class="tape yellow" aria-hidden="true"></span>
+      <label class="drop">
+        <span class="step">02</span>
+        <span class="big">Upload a full-body photo</span>
+        <span>Stand straight, fitted clothes, whole body in frame</span>
+        <input type="file" accept="image/*" data-up="body">
+      </label>
+      <p class="cap">for body type analysis</p>
+    </div>
+    <div class="polaroid">
+      <span class="tape yellow" aria-hidden="true"></span>
+      <label class="drop">
+        <span class="step">03</span>
+        <span class="big">Upload wardrobe items</span>
+        <span>One piece per photo, laid flat or hung up</span>
+        <input type="file" accept="image/*" multiple data-up="wardrobe">
+      </label>
+      <p class="cap">for the wardrobe styler</p>
+    </div>
+  </div>
+
+  <div class="paper light consent">
+    <input type="checkbox" id="consent">
+    <label for="consent">
+      <strong>I agree to let STAIL analyse my photos.</strong><br>
+      Photos are encrypted, stored securely and never shared or used to train models without your permission. You can delete them any time. (GDPR &amp; PDP compliant)
+    </label>
+  </div>
+  <div class="center" style="margin-top:28px">
+    <button class="btn btn-primary" id="analyzeBtn" disabled style="font-size:2rem">✦ Analyse me ✦</button>
+  </div>
+</section>
+
+<!-- =====================================================
+     3. ANALYSIS RESULTS
+     ===================================================== -->
+<section class="screen" id="results" aria-label="Analysis results">
+  <h2 class="tape pagehead">Analysis Results</h2>
+
+  <div class="results">
+    <!-- colour -->
+    <article class="paper">
+      <h3>Your Colour Season</h3>
+      <p class="season">Soft Summer</p>
+      <p>Cool undertone · medium-light hair · soft grey-blue eyes. Muted, cool, gentle colours make your skin glow.</p>
+      <p><strong>Best colours</strong></p>
+      <div class="swatches">
+        <div class="sw" style="--c:#C58BA4">rose</div>
+        <div class="sw" style="--c:#8C9DBC">denim</div>
+        <div class="sw" style="--c:#9BB3A6">sage</div>
+        <div class="sw" style="--c:#B7A2C4">lilac</div>
+        <div class="sw" style="--c:#7D5C74">plum</div>
+        <div class="sw light" style="--c:#E9DCD6">shell</div>
+        <div class="sw" style="--c:#6E7F95">slate</div>
+        <div class="sw" style="--c:#D9A6AF">blush</div>
+      </div>
+      <p><strong>Try to avoid</strong></p>
+      <div class="swatches avoid">
+        <div class="sw" style="--c:#F28C1C">orange</div>
+        <div class="sw" style="--c:#111">black</div>
+        <div class="sw" style="--c:#E3D22C">mustard</div>
+      </div>
+      <p style="font-size:1.1rem;margin-top:12px">Confidence</p>
+      <div class="meter" aria-label="Confidence 86%"><i style="width:86%"></i></div>
+      <p style="font-size:1.1rem">86% · lighting was a bit warm. <a href="#dashboard" data-go="dashboard" style="color:inherit">Retake selfie?</a></p>
+    </article>
+
+    <div style="display:grid;gap:40px">
+      <!-- body type -->
+      <article class="note" style="transform:rotate(1deg)">
+        <svg class="body-sil" viewBox="0 0 100 200" aria-hidden="true">
+          <circle cx="50" cy="20" r="14" fill="#F7CFE2" stroke="#9C1F57" stroke-width="2"/>
+          <path d="M30 40 Q50 34 70 40 Q66 70 58 80 Q72 100 72 118 L62 196 L52 196 L50 130 L48 196 L38 196 L28 118 Q28 100 42 80 Q34 70 30 40Z" fill="#F7CFE2" stroke="#9C1F57" stroke-width="2"/>
+        </svg>
+        <h3>Body Type: Hourglass</h3>
+        <ul class="dots">
+          <li>Balanced shoulders &amp; hips</li>
+          <li>Defined waist</li>
+          <li>Wrap dresses, belted coats &amp; high-waisted trousers work beautifully</li>
+          <li>Skip boxy, shapeless cuts</li>
+        </ul>
+      </article>
+
+      <!-- suggestions -->
+      <article class="grid-note" style="transform:rotate(-1deg)">
+        <h3>Styling Suggestions</h3>
+        <ul class="dots">
+          <li>Pair a lilac knit with sage wide-leg trousers</li>
+          <li>Swap black basics for slate or navy</li>
+          <li>Rose-gold &amp; silver jewellery over yellow gold</li>
+          <li>Tuck in tops to show your waist</li>
+        </ul>
+        <div style="margin-top:14px"><button class="btn btn-primary" data-go="wardrobe">Style my wardrobe →</button></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     4. WARDROBE STYLER
+     ===================================================== -->
+<section class="screen" id="wardrobe" aria-label="Wardrobe styler">
+  <h2 class="tape pagehead">Wardrobe Styler</h2><br>
+  <p class="sub">Pick an occasion, and we’ll mix what you already own.</p>
+
+  <div class="row" style="margin-top:22px" role="group" aria-label="Occasion">
+    <button class="chip" aria-pressed="true">Casual</button>
+    <button class="chip" aria-pressed="false">Work / School</button>
+    <button class="chip" aria-pressed="false">Date night</button>
+    <button class="chip" aria-pressed="false">Party</button>
+    <button class="chip" aria-pressed="false">Travel</button>
+  </div>
+
+  <div class="ward">
+    <!-- closet -->
+    <aside>
+      <h3 class="tape sm tilt-l" style="text-decoration:none;font-size:1.8rem">My closet · 9</h3>
+      <div class="closet" style="margin-top:18px">
+        <div class="item"><svg><use href="#i-top" style="fill:#EAD9C6"/></svg><span>cream knit</span></div>
+        <div class="item"><svg><use href="#i-pants" style="fill:#8C9DBC"/></svg><span>blue jeans</span></div>
+        <div class="item"><svg><use href="#i-skirt" style="fill:#C58BA4"/></svg><span>rose skirt</span></div>
+        <div class="item"><svg><use href="#i-dress" style="fill:#B7A2C4"/></svg><span>lilac dress</span></div>
+        <div class="item"><svg><use href="#i-coat" style="fill:#9D8A7A"/></svg><span>trench</span></div>
+        <div class="item"><svg><use href="#i-top" style="fill:#FAF7F2"/></svg><span>white tee</span></div>
+        <div class="item"><svg><use href="#i-shoe" style="fill:#2B2B2B"/></svg><span>sneakers</span></div>
+        <div class="item"><svg><use href="#i-bag" style="fill:#D9A6AF"/></svg><span>blush bag</span></div>
+        <button class="item add" data-go="dashboard" aria-label="Add item">+</button>
+      </div>
+    </aside>
+
+    <!-- generated looks -->
+    <div>
+      <div class="row" style="justify-content:space-between;margin-bottom:24px">
+        <h3 class="tape sm tilt-r" style="text-decoration:none;font-size:1.8rem">Today’s looks</h3>
+        <button class="btn btn-primary" id="shuffle">✦ Generate new looks</button>
+      </div>
+      <div class="looks" id="looks"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span class="tape sm">STAIL · design mockup v0.1 · by Nanami &amp; Clara</span>
+</footer>
+</main>
+
+<script>
+/* ---------- screen routing ---------- */
+const screens=[...document.querySelectorAll('.screen')];
+function go(id,scroll=true){
+  if(!document.getElementById(id)) id='welcome';
+  screens.forEach(s=>s.classList.toggle('on',s.id===id));
+  document.querySelectorAll('.nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.go===id?'page':'false'));
+  if(location.hash!=='#'+id) history.replaceState(null,'','#'+id);
+  if(scroll) window.scrollTo({top:0,behavior:'smooth'});
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-go]');
+  if(t){e.preventDefault();go(t.dataset.go)}
+  const a=e.target.closest('[data-go-auth]');
+  if(a){setAuth(a.dataset.goAuth);document.getElementById('auth').scrollIntoView({behavior:'smooth',block:'center'})}
+});
+go(location.hash.slice(1)||'welcome',false);
+window.addEventListener('hashchange',()=>go(location.hash.slice(1)));
+
+/* ---------- auth tabs ---------- */
+function setAuth(mode){
+  document.querySelectorAll('[data-auth]').forEach(b=>b.setAttribute('aria-selected',b.dataset.auth===mode));
+  document.querySelectorAll('[data-only="signup"]').forEach(el=>el.style.display=mode==='signup'?'':'none');
+  document.getElementById('authSubmit').textContent=mode==='signup'?'Create my account':'Log in';
+}
+document.querySelectorAll('[data-auth]').forEach(b=>b.onclick=()=>setAuth(b.dataset.auth));
+
+/* ---------- uploads (local preview only) ---------- */
+document.querySelectorAll('[data-up]').forEach(inp=>{
+  const drop=inp.closest('.drop');
+  inp.addEventListener('change',()=>{
+    const f=inp.files[0]; if(!f) return;
+    let img=drop.querySelector('img.preview');
+    if(!img){img=document.createElement('img');img.className='preview';img.alt='';drop.prepend(img)}
+    img.src=URL.createObjectURL(f);
+    drop.style.borderStyle='solid';
+  });
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,()=>drop.classList.add('drag')));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,()=>drop.classList.remove('drag')));
+});
+const consent=document.getElementById('consent'),analyze=document.getElementById('analyzeBtn');
+consent.onchange=()=>analyze.disabled=!consent.checked;
+analyze.onclick=()=>{analyze.textContent='✦ Analysing… ✦';setTimeout(()=>{analyze.textContent='✦ Analyse me ✦';go('results')},900)};
+
+/* ---------- wardrobe styler (fake generator) ---------- */
+const closet={
+  top:[['i-top','#EAD9C6','cream knit'],['i-top','#FAF7F2','white tee']],
+  bottom:[['i-pants','#8C9DBC','blue jeans'],['i-skirt','#C58BA4','rose skirt']],
+  one:[['i-dress','#B7A2C4','lilac dress']],
+  outer:[['i-coat','#9D8A7A','trench']],
+  shoe:[['i-shoe','#2B2B2B','sneakers']],
+  bag:[['i-bag','#D9A6AF','blush bag']],
+};
+const whys={
+  'Casual':['Soft neutrals keep it relaxed but put-together.','Denim + cream is your easy everyday base.','A pop of rose flatters your cool undertone.'],
+  'Work / School':['Tucked knit defines your waist: polished, not stiff.','Trench adds structure for meetings.','Muted tones read calm and confident.'],
+  'Date night':['Lilac is one of your best colours: it lights up your face.','Wrap shapes celebrate your hourglass figure.','Blush accents feel romantic, not loud.'],
+  'Party':['Rose skirt + blush bag is a tonal, photo-ready look.','Let the dress be the star; keep the rest simple.','Swap sneakers for heels if you own them!'],
+  'Travel':['Layers you can peel off on the plane.','Comfortable sneakers, still cute.','All pieces mix with each other.'],
+};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+let occasion='Casual';
+function piece([id,c,l]){return `<div><svg viewBox="0 0 100 100"><use href="#${id}" style="fill:${c}"/></svg>${l}</div>`}
+function render(){
+  const cls=['note','grid-note','paper light'];
+  document.getElementById('looks').innerHTML=[0,1,2].map(i=>{
+    const useDress=Math.random()<.35;
+    const parts=useDress?[pick(closet.one),pick(closet.outer),pick(closet.shoe),pick(closet.bag)]
+                        :[pick(closet.top),pick(closet.bottom),pick(closet.shoe),Math.random()<.5?pick(closet.outer):pick(closet.bag)];
+    return `<article class="look ${cls[i]}">
+      <button class="save" aria-pressed="false" aria-label="Save look">♡</button>
+      <h3>Look ${i+1}</h3>
+      <div class="pieces">${parts.map(piece).join('')}</div>
+      <p class="why">${whys[occasion][i]}</p>
+    </article>`}).join('');
+}
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===c));
+  occasion=c.textContent;render();
+});
+document.getElementById('shuffle').onclick=render;
+document.getElementById('looks').addEventListener('click',e=>{
+  const s=e.target.closest('.save'); if(!s) return;
+  const on=s.getAttribute('aria-pressed')!=='true';
+  s.setAttribute('aria-pressed',on); s.textContent=on?'♥':'♡';
+});
+render();
+</script>
+</body>
+</html>
