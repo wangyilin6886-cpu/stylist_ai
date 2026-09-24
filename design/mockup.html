@@ -979,26 +979,30 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
 /* =========================================================
    AI (Claude via the artifact `sample` capability)
    ========================================================= */
-let sample=null, imgLimits=null, aiReady=false;
-(async()=>{
+let sample=null, imgLimits=null, aiReady=false, aiWhy='';
+const aiInit=(async()=>{
   try{
-    if(window.claude&&window.claude.use){
+    if(!(window.claude&&window.claude.use)){aiWhy='this page was opened outside the Claude viewer';}
+    else{
       sample=await window.claude.use('sample');
-      if(sample){const l=await sample.limits().catch(()=>null);imgLimits=l&&l.images||null}
+      if(!sample)aiWhy='Claude isn’t available in this view (try opening the link in a browser at claude.ai while signed in)';
+      else{const l=await sample.limits().catch(()=>null);imgLimits=l&&l.images||null;
+        if(!imgLimits)aiWhy='this view can’t send photos to Claude (try a desktop browser at claude.ai)';}
     }
-  }catch(e){sample=null}
+  }catch(e){sample=null;aiWhy='AI failed to start'}
   aiReady=true;updateMode();
 })();
 function aiOn(){return !!(sample&&imgLimits)}
 function updateMode(){
   const m=$('#aiMode');
   if(!aiReady){m.textContent='Checking whether AI is available…';return}
-  m.textContent=aiOn()?'✦ AI analysis is on':'Demo mode: AI isn’t available here, so STAIL shows example results';
+  m.textContent=aiOn()?'✦ AI analysis is on':'Demo mode: '+(aiWhy||'AI isn’t available here')+'. STAIL will show example results.';
 }
 function errText(e){
   const c=e&&e.code;
   if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed','images_unavailable'].includes(c)){
-    sample=null;updateMode();return'AI isn’t available in this view, so STAIL is showing example results.'}
+    aiWhy=c==='not_granted'?'Claude access was not allowed for this page (reload the page and choose Allow)':c==='images_unavailable'?'this view can’t send photos to Claude':'Claude isn’t available for this account or view ('+c+')';
+    sample=null;updateMode();return'AI unavailable: '+aiWhy+'.'}
   if(c==='rate_limited')return'Too many requests right now. Wait a minute, then try again.';
   if(c==='session_expired')return'Please sign in to Claude again, then retry.';
   if(c==='image_rejected')return'One photo couldn’t be read. Try a JPEG or PNG under 20 MB.';
@@ -1114,7 +1118,7 @@ function randomLooks(occ){
 function swatch(s){return `<div class="sw ${light(s.hex)?'light':''}" style="--c:${hex(s.hex)}">${esc(s.name)}</div>`}
 function renderResults(){
   const a=state.analysis,c=a.color,b=a.body;
-  $('#resBadge').textContent=state.analysisSource==='ai'?'✦ analysed by AI':'example results';
+  $('#resBadge').textContent=state.analysisSource==='ai'?'✦ analysed by AI':(aiReady&&!aiOn()?'example results · AI unavailable: '+aiWhy:'example results');
   $('#colorCard').innerHTML=c?`
     <h3>Your Colour Season</h3>
     <p class="season">${esc(c.season)}</p>
@@ -1193,6 +1197,8 @@ function showExample(){
 $('#exampleBtn').onclick=showExample;
 
 $('#analyzeBtn').onclick=async()=>{
+  const btn=$('#analyzeBtn');
+  if(!aiReady){btn.disabled=true;btn.textContent='✦ Connecting to AI… ✦';await aiInit;btn.textContent='✦ Analyse me ✦';btn.disabled=!canAnalyse()}
   if(!aiOn()){showExample();return}
   ctl=new AbortController();const signal=ctl.signal;
   busy(true,'STAIL is looking at your photos…');
@@ -1204,12 +1210,13 @@ $('#analyzeBtn').onclick=async()=>{
   await Promise.all(jobs);
   busy(false);save();renderAll();
   if(signal.aborted)return;
-  if(errs.length){$('#aiMode').textContent=errs[0];return}
+  if(errs.length){const m=$('#aiMode');m.textContent=errs[0];m.scrollIntoView({block:'center'});return}
   go(uploads.selfie||uploads.body?'results':'wardrobe');
 };
 
 async function generate(freshAnswer){
   const occ=state.occasion;
+  if(!aiReady)await aiInit;
   if(aiOn()&&state.closet.length>=2){
     ctl=new AbortController();
     busy(true,'STAIL is putting outfits together…','This usually takes a few seconds.');
