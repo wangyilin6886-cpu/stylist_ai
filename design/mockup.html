@@ -395,6 +395,20 @@ ul.todo li::before{content:"";position:absolute;left:.1em;top:.35em;width:.85em;
 footer{text-align:center;margin-top:70px}
 
 /* ---------- AI demo additions ---------- */
+.textmode{display:grid;grid-template-columns:1.2fr 1fr;gap:34px;margin-top:50px;align-items:start}
+@media (max-width:860px){.textmode{grid-template-columns:1fr}}
+.hint{font-size:1.15rem;margin:.2em 0 .6em}
+.dot{display:inline-block;width:.9em;height:.9em;border-radius:50%;border:2px solid currentColor;vertical-align:-.1em;margin-left:.2em;background:transparent}
+#pickCanvas{display:block;margin-top:14px;max-width:100%;cursor:crosshair;border:6px solid #fff;box-shadow:0 4px 12px rgba(60,20,40,.2)}
+#pickCanvas[hidden]{display:none}
+.meas{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0 18px}
+.review-card{max-width:560px;width:100%;max-height:86vh;overflow:auto}
+.review-list{display:grid;gap:10px}
+.review-row{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center}
+.review-row img{width:64px;height:64px;object-fit:cover;border:4px solid #fff;box-shadow:0 2px 6px rgba(60,20,40,.2)}
+.review-row .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.review-row input,.review-row select{font:inherit;font-size:1.15rem;border:0;border-bottom:2px dashed var(--ink);background:transparent;color:var(--ink);min-width:0;flex:1 1 140px}
+.review-row select{flex:0 1 130px}
 .ai-pill{font-weight:700;font-size:1.05rem;padding:.05em .7em;background:var(--noise),var(--sticky);clip-path:var(--jag);max-width:100%}
 .ai-pill.on{background:var(--noise),var(--fabric);color:#fff}
 .diag{display:block;font-family:ui-monospace,Consolas,monospace;font-size:.8rem;opacity:.75;margin-top:4px;word-break:break-all}
@@ -860,6 +874,30 @@ footer{text-align:center;margin-top:70px}
     </div>
   </div>
 
+  <div class="textmode" id="textMode" hidden>
+    <article class="paper light picker-card">
+      <h3>Pick your colours</h3>
+      <p class="hint" id="pickHint">Upload a selfie above, then tap your photo to pick each colour.</p>
+      <div class="row" role="group" aria-label="Colour to pick" id="pickTargets">
+        <button class="chip" data-pick="skin" aria-pressed="true">Skin <i class="dot" id="dot-skin"></i></button>
+        <button class="chip" data-pick="hair" aria-pressed="false">Hair <i class="dot" id="dot-hair"></i></button>
+        <button class="chip" data-pick="eyes" aria-pressed="false">Eyes <i class="dot" id="dot-eyes"></i></button>
+      </div>
+      <canvas id="pickCanvas" width="10" height="10" hidden></canvas>
+    </article>
+    <article class="note meas-card">
+      <h3>Your measurements</h3>
+      <p class="hint">In cm. Measure around the widest part. Leave blank to skip body type.</p>
+      <div class="meas">
+        <label class="field"><span>Height</span><input type="number" inputmode="decimal" id="mHeight" placeholder="165"></label>
+        <label class="field"><span>Shoulders</span><input type="number" inputmode="decimal" id="mShoulders" placeholder="40"></label>
+        <label class="field"><span>Bust / chest</span><input type="number" inputmode="decimal" id="mBust" placeholder="88"></label>
+        <label class="field"><span>Waist</span><input type="number" inputmode="decimal" id="mWaist" placeholder="68"></label>
+        <label class="field"><span>Hips</span><input type="number" inputmode="decimal" id="mHips" placeholder="94"></label>
+      </div>
+    </article>
+  </div>
+
   <div class="paper light consent">
     <input type="checkbox" id="consent">
     <label for="consent">
@@ -939,6 +977,19 @@ footer{text-align:center;margin-top:70px}
   </div>
 </div>
 
+<!-- wardrobe review -->
+<div class="busy" id="review" hidden>
+  <div class="note review-card" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+    <p class="busy-t" id="reviewTitle">What are these?</p>
+    <p class="hint">STAIL read each item’s colour. Pick what kind of piece it is.</p>
+    <div id="reviewList" class="review-list"></div>
+    <div class="row" style="justify-content:center;margin-top:14px">
+      <button class="btn btn-primary" id="reviewAdd" type="button">Add to closet</button>
+      <button class="btn btn-tape" id="reviewCancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================================================
    helpers
@@ -990,25 +1041,27 @@ const aiInit=(async()=>{
     else{
       sample=await window.claude.use('sample');
       if(!sample)aiWhy='Claude isn’t available in this view (try opening the link in a browser at claude.ai while signed in)';
-      else{const l=await sample.limits().catch(e=>({error:e&&e.code||String(e)}));imgLimits=l&&l.images||null;aiDiag='limits='+JSON.stringify(l);
-        if(!imgLimits)aiWhy='this view can’t send photos to Claude (try a desktop browser at claude.ai)';}
+      else{const l=await sample.limits().catch(e=>({error:e&&e.code||String(e)}));imgLimits=l&&l.images||null;aiDiag='limits='+JSON.stringify(l);}
     }
   }catch(e){sample=null;aiWhy='AI failed to start';aiDiag='error='+(e&&e.message||e)}
   aiDiag=`claude=${typeof window.claude} use=${typeof (window.claude&&window.claude.use)} sample=${sample?'yes':'null'} `+aiDiag;
   aiReady=true;updateMode();
 })();
-function aiOn(){return !!(sample&&imgLimits)}
+function aiOn(){return !!sample}
+function photoMode(){return !!(sample&&imgLimits)}
 function updateMode(){
   const m=$('#aiMode');
   if(!aiReady){m.textContent='Checking whether AI is available…';return}
-  m.textContent=aiOn()?'✦ AI analysis is on':'Demo mode: '+(aiWhy||'AI isn’t available here')+'. STAIL will show example results.';
+  m.textContent=photoMode()?'✦ AI photo analysis is on':aiOn()?'✦ AI is on. This view can’t send photos, so pick your colours and add your measurements above.':'Demo mode: '+(aiWhy||'AI isn’t available here')+'. STAIL will show example results.';
+  $('#textMode').hidden=photoMode();
   if(!aiOn()){const d=document.createElement('small');d.className='diag';d.textContent=aiDiag;m.append(d)}
   const pill=$('#aiPill');pill.classList.toggle('on',aiOn());
   pill.textContent=aiOn()?'AI: on ✦':'AI: off';pill.title=aiOn()?'':aiWhy+' · '+aiDiag;
 }
 function errText(e){
   const c=e&&e.code;
-  if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed','images_unavailable'].includes(c)){
+  if(c==='images_unavailable'){imgLimits=null;updateMode();return'This view can’t send photos. Pick your colours and add measurements instead, then try again.'}
+  if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(c)){
     aiWhy=c==='not_granted'?'Claude access was not allowed for this page (reload the page and choose Allow)':c==='images_unavailable'?'this view can’t send photos to Claude':'Claude isn’t available for this account or view ('+c+')';
     sample=null;updateMode();return'AI unavailable: '+aiWhy+'.'}
   if(c==='rate_limited')return'Too many requests right now. Wait a minute, then try again.';
@@ -1041,6 +1094,20 @@ Set "color" to null if there is no selfie, and "body" to null if there is no ful
   const images=[files.selfie,files.body].filter(Boolean);
   const r=await sample.json(prompt,{images,signal});
   return normAnalysis(r);
+}
+const SCHEMA=`{"color": {"season": "one of the 12 seasonal colour types, e.g. Soft Summer", "undertone": "Cool|Warm|Neutral", "description": "1-2 sentences on skin, hair and eye colouring", "best": [{"name": "short colour name", "hex": "#RRGGBB"}] (exactly 8), "avoid": [{"name": "...", "hex": "#RRGGBB"}] (exactly 3), "confidence": 0-100, "note": "one short sentence on what would improve accuracy"},
+ "body": {"type": "Hourglass|Pear|Apple|Rectangle|Inverted Triangle", "description": "one neutral, kind sentence", "wear": ["3-4 short garment suggestions"], "avoid": ["1-2 short suggestions"], "confidence": 0-100},
+ "tips": ["4 short, specific styling tips that combine the results"]}`;
+async function analyseText(picked,meas,signal){
+  const colourLine=picked.skin?`Colours sampled from the user's selfie (pixel colours, so lighting may shift them; allow for that): skin ${picked.skin}, hair ${picked.hair||'unknown'}, eyes ${picked.eyes||'unknown'}.`:'No selfie colours were given.';
+  const m=Object.entries(meas).filter(([,v])=>v).map(([k,v])=>`${k} ${v} cm`).join(', ');
+  const prompt=`You are STAIL, a warm, body-positive personal stylist.
+${colourLine}
+${m?'Body measurements: '+m+'.':'No body measurements were given.'}
+Return ONLY JSON with this shape:
+${SCHEMA}
+Set "color" to null if no selfie colours were given, and "body" to null if no measurements were given. Base confidence on how complete and reliable the inputs are. Describe bodies neutrally and never suggest changing them.`;
+  return normAnalysis(await sample.json(prompt,{signal}));
 }
 function normAnalysis(r){
   r=r||{};const out={color:null,body:null,tips:arr(r.tips,6).map(String)};
@@ -1077,6 +1144,66 @@ function thumb(file){return new Promise(res=>{
     c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
     try{res(c.toDataURL('image/jpeg',.72))}catch(e){res(null)}};
   img.onerror=()=>{URL.revokeObjectURL(url);res(null)};img.src=url;})}
+const picked={skin:null,hair:null,eyes:null};let pickTarget='skin';
+const toHex=(r,g,b)=>'#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+function avgAt(ctx,x,y,rad){const d=ctx.getImageData(Math.max(0,x-rad),Math.max(0,y-rad),rad*2,rad*2).data;let r=0,g=0,b=0,n=0;for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++}return n?toHex(r/n,g/n,b/n):null}
+function setPick(k,h){picked[k]=h;const d=$('#dot-'+k);if(d)d.style.background=h||'transparent';$('#analyzeBtn').disabled=!canAnalyse()}
+function loadPicker(file){
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{const c=$('#pickCanvas'),s=Math.min(1,420/Math.max(img.width,img.height));
+    c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);const ctx=c.getContext('2d',{willReadFrequently:true});
+    ctx.drawImage(img,0,0,c.width,c.height);c.hidden=false;c._img=img;URL.revokeObjectURL(url);
+    setPick('skin',avgAt(ctx,c.width*.5|0,c.height*.58|0,8));setPick('hair',avgAt(ctx,c.width*.5|0,c.height*.07|0,8));setPick('eyes',null);
+    $('#pickHint').textContent='We guessed skin and hair. Tap the photo to fix them, and tap an eye to pick eye colour.';};
+  img.src=url;
+}
+function redrawMarks(){const c=$('#pickCanvas');if(!c._img)return;const ctx=c.getContext('2d');ctx.drawImage(c._img,0,0,c.width,c.height);
+  for(const k in c._marks||{}){const [x,y]=c._marks[k];ctx.beginPath();ctx.arc(x,y,9,0,7);ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();ctx.fillStyle='#9C1F57';ctx.font='bold 13px sans-serif';ctx.fillText(k,x+12,y+4)}}
+$('#pickCanvas').addEventListener('click',e=>{
+  const c=e.currentTarget,r=c.getBoundingClientRect(),x=(e.clientX-r.left)*c.width/r.width|0,y=(e.clientY-r.top)*c.height/r.height|0;
+  c._marks=c._marks||{};delete c._marks[pickTarget];redrawMarks();
+  setPick(pickTarget,avgAt(c.getContext('2d'),x,y,3));c._marks[pickTarget]=[x,y];redrawMarks();
+  const order=['skin','hair','eyes'];pickTarget=order[(order.indexOf(pickTarget)+1)%3];
+  document.querySelectorAll('[data-pick]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pick===pickTarget));
+});
+document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{pickTarget=b.dataset.pick;document.querySelectorAll('[data-pick]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+const MEAS={height:'#mHeight',shoulders:'#mShoulders','bust/chest':'#mBust',waist:'#mWaist',hips:'#mHips'};
+function measurements(){const o={};for(const k in MEAS){const v=parseFloat($(MEAS[k]).value);if(v>0)o[k]=v}return o}
+function hasMeas(){const m=measurements();return !!(m.waist&&(m.hips||m['bust/chest']))}
+Object.values(MEAS).forEach(id=>$(id).addEventListener('input',()=>$('#analyzeBtn').disabled=!canAnalyse()));
+
+const NAMED=[['black','#1a1a1a'],['white','#f4f4f2'],['cream','#eadbc4'],['beige','#d8c3a5'],['tan','#b98b5e'],['brown','#7b5234'],['grey','#8c8c8c'],['charcoal','#3a3a3a'],['navy','#1f2a4d'],['blue','#3b6fb6'],['denim','#5b7fa6'],['light blue','#a9c6e8'],['teal','#2a8c8c'],['green','#3f7d4a'],['sage','#9bb3a6'],['olive','#6b7040'],['mint','#bfe3cf'],['yellow','#e9cf4a'],['mustard','#c9a227'],['orange','#e07b2a'],['rust','#a0452b'],['red','#c0392b'],['burgundy','#7a1f35'],['pink','#e889a8'],['blush','#e8b4bc'],['rose','#c58ba4'],['hot pink','#e0457b'],['lilac','#b7a2c4'],['purple','#6c4a8a'],['khaki','#b5a878']];
+function nameOf(h){const n=parseInt(h.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;let best,bd=1e9;for(const [nm,hx] of NAMED){const m=parseInt(hx.slice(1),16),d=(r-(m>>16&255))**2+(g-(m>>8&255))**2+(b-(m&255))**2;if(d<bd){bd=d;best=nm}}return best}
+function dominant(file){return new Promise(res=>{const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=48;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,48,48);URL.revokeObjectURL(url);
+    const d=ctx.getImageData(0,0,48,48).data,px=(x,y)=>{const i=(y*48+x)*4;return[d[i],d[i+1],d[i+2]]};
+    let br=0,bg=0,bb=0,bn=0;for(let i=0;i<48;i++)for(const [x,y] of [[i,0],[i,47],[0,i],[47,i]]){const p=px(x,y);br+=p[0];bg+=p[1];bb+=p[2];bn++}
+    br/=bn;bg/=bn;bb/=bn;let r=0,g=0,b=0,n=0,cr=0,cg=0,cb=0,cn=0;
+    for(let y=8;y<40;y++)for(let x=8;x<40;x++){const p=px(x,y);cr+=p[0];cg+=p[1];cb+=p[2];cn++;if((p[0]-br)**2+(p[1]-bg)**2+(p[2]-bb)**2>2500){r+=p[0];g+=p[1];b+=p[2];n++}}
+    res(n>40?toHex(r/n,g/n,b/n):toHex(cr/cn,cg/cn,cb/cn))};
+  img.onerror=()=>{URL.revokeObjectURL(url);res('#cccccc')};img.src=url})}
+
+/* wardrobe review (no AI needed) */
+const CATS=[['top','Top'],['bottom','Trousers / jeans'],['skirt','Skirt'],['dress','Dress'],['outer','Jacket / coat'],['shoes','Shoes'],['bag','Bag'],['accessory','Accessory']];
+let reviewItems=[];
+async function openReview(files){
+  reviewItems=await Promise.all(files.map(async(f,i)=>{const h=await dominant(f);return{id:'u'+Date.now().toString(36)+i,colorHex:h,colorName:nameOf(h),category:'top',thumb:await thumb(f),edited:false}}));
+  $('#reviewList').innerHTML=reviewItems.map((it,i)=>`<div class="review-row"><img src="${esc(it.thumb||'')}" alt="">
+    <div class="ctl"><i class="dot" style="background:${it.colorHex};color:${it.colorHex}"></i>
+    <select data-ri="${i}" aria-label="Type of item ${i+1}">${CATS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+    <input data-rn="${i}" aria-label="Name of item ${i+1}" value="${esc(it.colorName+' top')}"></div></div>`).join('');
+  $('#review').hidden=false;
+}
+$('#reviewList').addEventListener('change',e=>{const i=e.target.dataset.ri;if(i==null)return;const it=reviewItems[i];it.category=e.target.value;
+  const inp=$(`[data-rn="${i}"]`);if(!it.edited)inp.value=it.colorName+' '+(CATS.find(c=>c[0]===it.category)[1].split(' /')[0].toLowerCase())});
+$('#reviewList').addEventListener('input',e=>{const i=e.target.dataset.rn;if(i!=null)reviewItems[i].edited=true});
+$('#reviewCancel').onclick=()=>{$('#review').hidden=true;reviewItems=[]};
+$('#reviewAdd').onclick=()=>{
+  addToCloset(reviewItems.map((it,i)=>({id:it.id,name:($(`[data-rn="${i}"]`).value||it.colorName).slice(0,40),category:it.category,colorName:it.colorName,colorHex:it.colorHex,thumb:it.thumb})));
+  $('#review').hidden=true;reviewItems=[];renderCloset();renderLooks();
+  const c=$('#wardCount');c.hidden=false;c.textContent=state.closet.length+' in closet';
+};
+
 function addToCloset(items){
   if(!items.length)return;
   if(state.closet.some(i=>i.example))state.closet=state.closet.filter(i=>!i.example);
@@ -1147,7 +1274,7 @@ function renderResults(){
     <h3>Body Type: ${esc(b.type)}</h3>
     <p style="margin:.2em 0">${esc(b.description)}</p>
     <ul class="dots">${b.wear.map(w=>`<li>${esc(w)}</li>`).join('')}${b.avoid.map(w=>`<li>Skip: ${esc(w)}</li>`).join('')}</ul>`
-  :`<h3>Body Type</h3><p>Upload a full-body photo to find the silhouettes that suit you.</p><button class="btn btn-primary" data-go="dashboard">Upload a photo</button>`;
+  :`<h3>Body Type</h3><p>Add a full-body photo or your measurements on the Upload page to find the silhouettes that suit you.</p><button class="btn btn-primary" data-go="dashboard">Go to Upload</button>`;
   $('#tipsCard').innerHTML=`<h3>Styling Suggestions</h3>
     <ul class="dots">${(a.tips.length?a.tips:['Add a photo to get personal tips.']).map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
     <div style="margin-top:14px"><button class="btn btn-primary" data-go="wardrobe">Style my wardrobe →</button></div>`;
@@ -1182,13 +1309,15 @@ function renderAll(){renderResults();renderCloset();renderLooks();updateMode()}
    actions
    ========================================================= */
 const uploads={selfie:null,body:null,wardrobe:[]};
-function canAnalyse(){return $('#consent').checked&&(uploads.selfie||uploads.body||uploads.wardrobe.length)}
+function canAnalyse(){return $('#consent').checked&&!!(uploads.selfie||uploads.body||uploads.wardrobe.length||picked.skin||hasMeas())}
 document.querySelectorAll('[data-up]').forEach(inp=>{
   const drop=inp.closest('.drop');
   inp.addEventListener('change',()=>{
     const fs=[...inp.files];if(!fs.length)return;
-    if(inp.dataset.up==='wardrobe'){uploads.wardrobe=fs;const c=$('#wardCount');c.hidden=false;c.textContent=fs.length+(fs.length>1?' items':' item')}
-    else uploads[inp.dataset.up]=fs[0];
+    if(inp.dataset.up==='wardrobe'){
+      if(!photoMode()){openReview(fs);inp.value=''}
+      else{uploads.wardrobe=fs;const c=$('#wardCount');c.hidden=false;c.textContent=fs.length+(fs.length>1?' items':' item')}}
+    else{uploads[inp.dataset.up]=fs[0];if(inp.dataset.up==='selfie')loadPicker(fs[0])}
     let img=drop.querySelector('img.preview');
     if(!img){img=document.createElement('img');img.className='preview';img.alt='';drop.prepend(img)}
     img.src=URL.createObjectURL(fs[0]);drop.style.borderStyle='solid';
@@ -1209,6 +1338,16 @@ $('#analyzeBtn').onclick=async()=>{
   if(!aiReady){btn.disabled=true;btn.textContent='✦ Connecting to AI… ✦';await aiInit;btn.textContent='✦ Analyse me ✦';btn.disabled=!canAnalyse()}
   if(!aiOn()){showExample();return}
   ctl=new AbortController();const signal=ctl.signal;
+  if(!photoMode()){
+    if(!picked.skin&&!hasMeas()){const m=$('#aiMode');m.textContent='Pick your colours from a selfie or enter your measurements first.';return}
+    busy(true,'STAIL is working out your style…','This usually takes 10–40 seconds.');
+    let err=null;
+    try{state.analysis=await analyseText({...picked},measurements(),signal);state.analysisSource='ai'}catch(e){if(e.code!=='cancelled')err=errText(e)}
+    busy(false);save();renderAll();
+    if(signal.aborted)return;
+    if(err){const m=$('#aiMode');m.textContent=err;m.scrollIntoView({block:'center'});return}
+    go('results');return;
+  }
   busy(true,'STAIL is looking at your photos…');
   const errs=[];
   const jobs=[];
@@ -1243,7 +1382,7 @@ $('#shuffle').onclick=()=>generate(true);
 document.addEventListener('change',async e=>{
   if(e.target.id!=='closetAdd')return;
   const fs=[...e.target.files];if(!fs.length)return;
-  if(!aiOn()){$('#closetNote').textContent='Adding clothes needs AI, which isn’t available in this view.';return}
+  if(!photoMode()){e.target.value='';openReview(fs);return}
   ctl=new AbortController();busy(true,'STAIL is sorting your clothes…','Tagging each item’s type and colour.');
   try{addToCloset(await tagItems(fs,ctl.signal))}catch(err){if(err.code!=='cancelled')$('#closetNote').textContent=errText(err)}
   busy(false);renderCloset();renderLooks();
