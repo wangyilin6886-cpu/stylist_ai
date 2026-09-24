@@ -39,6 +39,7 @@
   --jag: polygon(1.5% 0,98.5% 0,100% 12%,97.5% 26%,100% 42%,97.8% 58%,100% 74%,97.5% 88%,98.5% 100%,1.5% 100%,0 88%,2.4% 74%,0 58%,2.2% 42%,0 26%,2.5% 12%);
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 html{overflow-x:clip}
 body{
@@ -374,7 +375,7 @@ ul.todo li::before{content:"";position:absolute;left:.1em;top:.35em;width:.85em;
 .item{background:var(--polaroid);padding:6px 6px 22px;box-shadow:0 4px 10px rgba(60,20,40,.2);position:relative;text-align:center;font-size:1rem}
 .item:nth-child(odd){transform:rotate(-2deg)}
 .item:nth-child(3n){transform:rotate(2deg)}
-.item svg{width:100%;aspect-ratio:1;background:#F5EEE6;display:block}
+
 .item span{position:absolute;left:0;right:0;bottom:2px}
 .item.add{display:flex;align-items:center;justify-content:center;font-family:var(--font-title);font-size:2.2rem;border:2px dashed var(--ink);background:transparent;box-shadow:none;cursor:pointer;min-height:100px}
 .looks{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:34px}
@@ -392,6 +393,22 @@ ul.todo li::before{content:"";position:absolute;left:.1em;top:.35em;width:.85em;
 .sub{display:inline-block;background:rgba(251,246,238,.88);padding:.15em .6em;margin-top:18px;font-size:1.5rem}
 
 footer{text-align:center;margin-top:70px}
+
+/* ---------- AI demo additions ---------- */
+.item .vis{aspect-ratio:1;background:#F5EEE6;overflow:hidden}
+.item .vis svg,.item .vis img{width:100%;height:100%;display:block;object-fit:cover;background:none;aspect-ratio:auto}
+.item .rm{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;border:0;background:var(--magenta);color:#fff;font-size:1rem;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s}
+.item:hover .rm,.item .rm:focus-visible{opacity:1}
+@media (hover:none){.item .rm{opacity:.85}}
+.look .pieces img{width:100%;height:90px;object-fit:contain;display:block}
+.count{position:absolute;right:10px;bottom:10px;z-index:2;background:var(--magenta);color:#fff;padding:.05em .6em;font-weight:700;clip-path:var(--jag)}
+.closet-note{font-size:1.15rem;margin:.6em 0 0;background:rgba(251,246,238,.88);display:inline-block;padding:0 .4em}
+.linkish{background:none;border:0;cursor:pointer;color:var(--ink);text-decoration:underline;text-underline-offset:4px;font-size:1.2rem;background:rgba(251,246,238,.85);padding:0 .4em}
+.busy{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(90,20,55,.35)}
+.busy-card{max-width:420px;width:100%;text-align:center;padding-left:3.2rem}
+.busy-t{font-family:var(--font-title);font-size:1.9rem;margin:.2em 0}
+.spark{width:54px;height:54px;animation:spin 2.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 @media (max-width:600px){
   body{font-size:1.25rem}
@@ -803,7 +820,7 @@ footer{text-align:center;margin-top:70px}
      ===================================================== -->
 <section class="screen" id="dashboard" aria-label="Upload">
   <h2 class="tape pagehead">Hi Nanami, let’s get styled ♡</h2><br>
-  <p class="sub">Three photos, and STAIL does the rest.</p>
+  <p class="sub">Add any of the three photos. STAIL analyses whatever you give it.</p>
 
   <div class="upload-grid">
     <div class="polaroid">
@@ -812,7 +829,7 @@ footer{text-align:center;margin-top:70px}
         <span class="step">01</span>
         <span class="big">Upload a selfie</span>
         <span>Natural daylight, no filter, bare face if you can</span>
-        <input type="file" accept="image/*" data-up="selfie">
+        <input type="file" id="upSelfie" accept="image/jpeg,image/png,image/webp,image/gif" data-up="selfie">
       </label>
       <p class="cap">for colour analysis</p>
     </div>
@@ -822,7 +839,7 @@ footer{text-align:center;margin-top:70px}
         <span class="step">02</span>
         <span class="big">Upload a full-body photo</span>
         <span>Stand straight, fitted clothes, whole body in frame</span>
-        <input type="file" accept="image/*" data-up="body">
+        <input type="file" id="upBody" accept="image/jpeg,image/png,image/webp,image/gif" data-up="body">
       </label>
       <p class="cap">for body type analysis</p>
     </div>
@@ -831,8 +848,9 @@ footer{text-align:center;margin-top:70px}
       <label class="drop">
         <span class="step">03</span>
         <span class="big">Upload wardrobe items</span>
-        <span>One piece per photo, laid flat or hung up</span>
-        <input type="file" accept="image/*" multiple data-up="wardrobe">
+        <span>One piece per photo, laid flat or hung up. You can pick several.</span>
+        <input type="file" id="upWardrobe" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-up="wardrobe">
+        <span class="count" id="wardCount" hidden></span>
       </label>
       <p class="cap">for the wardrobe styler</p>
     </div>
@@ -842,11 +860,13 @@ footer{text-align:center;margin-top:70px}
     <input type="checkbox" id="consent">
     <label for="consent">
       <strong>I agree to let STAIL analyse my photos.</strong><br>
-      Photos are encrypted, stored securely and never shared or used to train models without your permission. You can delete them any time. (GDPR &amp; PDP compliant)
+      Photos are sent to Claude only to create your analysis and aren’t uploaded anywhere else. Small thumbnails of your clothes stay in this browser; clear them any time with “Reset demo”.
     </label>
   </div>
-  <div class="center" style="margin-top:28px">
+  <div class="center" style="margin-top:28px;display:grid;gap:14px;justify-items:center">
     <button class="btn btn-primary" id="analyzeBtn" disabled style="font-size:2rem">✦ Analyse me ✦</button>
+    <span class="tape sm yellow" id="aiMode">Checking whether AI is available…</span>
+    <button class="linkish" id="exampleBtn" type="button">No photos handy? See an example result</button>
   </div>
 </section>
 
@@ -854,63 +874,15 @@ footer{text-align:center;margin-top:70px}
      3. ANALYSIS RESULTS
      ===================================================== -->
 <section class="screen" id="results" aria-label="Analysis results">
-  <h2 class="tape pagehead">Analysis Results</h2>
-
+  <div class="row" style="align-items:flex-end;gap:18px">
+    <h2 class="tape pagehead">Analysis Results</h2>
+    <span class="tape sm yellow" id="resBadge"></span>
+  </div>
   <div class="results">
-    <!-- colour -->
-    <article class="paper">
-      <h3>Your Colour Season</h3>
-      <p class="season">Soft Summer</p>
-      <p>Cool undertone · medium-light hair · soft grey-blue eyes. Muted, cool, gentle colours make your skin glow.</p>
-      <p><strong>Best colours</strong></p>
-      <div class="swatches">
-        <div class="sw" style="--c:#C58BA4">rose</div>
-        <div class="sw" style="--c:#8C9DBC">denim</div>
-        <div class="sw" style="--c:#9BB3A6">sage</div>
-        <div class="sw" style="--c:#B7A2C4">lilac</div>
-        <div class="sw" style="--c:#7D5C74">plum</div>
-        <div class="sw light" style="--c:#E9DCD6">shell</div>
-        <div class="sw" style="--c:#6E7F95">slate</div>
-        <div class="sw" style="--c:#D9A6AF">blush</div>
-      </div>
-      <p><strong>Try to avoid</strong></p>
-      <div class="swatches avoid">
-        <div class="sw" style="--c:#F28C1C">orange</div>
-        <div class="sw" style="--c:#111">black</div>
-        <div class="sw" style="--c:#E3D22C">mustard</div>
-      </div>
-      <p style="font-size:1.1rem;margin-top:12px">Confidence</p>
-      <div class="meter" aria-label="Confidence 86%"><i style="width:86%"></i></div>
-      <p style="font-size:1.1rem">86% · lighting was a bit warm. <a href="#dashboard" data-go="dashboard" style="color:inherit">Retake selfie?</a></p>
-    </article>
-
-    <div style="display:grid;gap:40px">
-      <!-- body type -->
-      <article class="note" style="transform:rotate(1deg)">
-        <svg class="body-sil" viewBox="0 0 100 200" aria-hidden="true">
-          <circle cx="50" cy="20" r="14" fill="#F7CFE2" stroke="#9C1F57" stroke-width="2"/>
-          <path d="M30 40 Q50 34 70 40 Q66 70 58 80 Q72 100 72 118 L62 196 L52 196 L50 130 L48 196 L38 196 L28 118 Q28 100 42 80 Q34 70 30 40Z" fill="#F7CFE2" stroke="#9C1F57" stroke-width="2"/>
-        </svg>
-        <h3>Body Type: Hourglass</h3>
-        <ul class="dots">
-          <li>Balanced shoulders &amp; hips</li>
-          <li>Defined waist</li>
-          <li>Wrap dresses, belted coats &amp; high-waisted trousers work beautifully</li>
-          <li>Skip boxy, shapeless cuts</li>
-        </ul>
-      </article>
-
-      <!-- suggestions -->
-      <article class="grid-note" style="transform:rotate(-1deg)">
-        <h3>Styling Suggestions</h3>
-        <ul class="dots">
-          <li>Pair a lilac knit with sage wide-leg trousers</li>
-          <li>Swap black basics for slate or navy</li>
-          <li>Rose-gold &amp; silver jewellery over yellow gold</li>
-          <li>Tuck in tops to show your waist</li>
-        </ul>
-        <div style="margin-top:14px"><button class="btn btn-primary" data-go="wardrobe">Style my wardrobe →</button></div>
-      </article>
+    <article class="paper" id="colorCard"></article>
+    <div style="display:grid;gap:40px;align-content:start">
+      <article class="note" id="bodyCard" style="transform:rotate(1deg)"></article>
+      <article class="grid-note" id="tipsCard" style="transform:rotate(-1deg)"></article>
     </div>
   </div>
 </section>
@@ -920,9 +892,9 @@ footer{text-align:center;margin-top:70px}
      ===================================================== -->
 <section class="screen" id="wardrobe" aria-label="Wardrobe styler">
   <h2 class="tape pagehead">Wardrobe Styler</h2><br>
-  <p class="sub">Pick an occasion, and we’ll mix what you already own.</p>
+  <p class="sub">Pick an occasion, and STAIL mixes what you already own.</p>
 
-  <div class="row" style="margin-top:22px" role="group" aria-label="Occasion">
+  <div class="row" style="margin-top:22px" role="group" aria-label="Occasion" id="chips">
     <button class="chip" aria-pressed="true">Casual</button>
     <button class="chip" aria-pressed="false">Work / School</button>
     <button class="chip" aria-pressed="false">Date night</button>
@@ -931,40 +903,347 @@ footer{text-align:center;margin-top:70px}
   </div>
 
   <div class="ward">
-    <!-- closet -->
     <aside>
-      <h3 class="tape sm tilt-l" style="text-decoration:none;font-size:1.8rem">My closet · 9</h3>
-      <div class="closet" style="margin-top:18px">
-        <div class="item"><svg><use href="#i-top" style="fill:#EAD9C6"/></svg><span>cream knit</span></div>
-        <div class="item"><svg><use href="#i-pants" style="fill:#8C9DBC"/></svg><span>blue jeans</span></div>
-        <div class="item"><svg><use href="#i-skirt" style="fill:#C58BA4"/></svg><span>rose skirt</span></div>
-        <div class="item"><svg><use href="#i-dress" style="fill:#B7A2C4"/></svg><span>lilac dress</span></div>
-        <div class="item"><svg><use href="#i-coat" style="fill:#9D8A7A"/></svg><span>trench</span></div>
-        <div class="item"><svg><use href="#i-top" style="fill:#FAF7F2"/></svg><span>white tee</span></div>
-        <div class="item"><svg><use href="#i-shoe" style="fill:#2B2B2B"/></svg><span>sneakers</span></div>
-        <div class="item"><svg><use href="#i-bag" style="fill:#D9A6AF"/></svg><span>blush bag</span></div>
-        <button class="item add" data-go="dashboard" aria-label="Add item">+</button>
-      </div>
+      <h3 class="tape sm tilt-l" style="text-decoration:none;font-size:1.8rem" id="closetTitle">My closet</h3>
+      <p id="closetNote" class="closet-note"></p>
+      <div class="closet" id="closet" style="margin-top:18px"></div>
     </aside>
-
-    <!-- generated looks -->
     <div>
       <div class="row" style="justify-content:space-between;margin-bottom:24px">
         <h3 class="tape sm tilt-r" style="text-decoration:none;font-size:1.8rem">Today’s looks</h3>
         <button class="btn btn-primary" id="shuffle">✦ Generate new looks</button>
       </div>
+      <p id="lookNote" class="closet-note"></p>
       <div class="looks" id="looks"></div>
     </div>
   </div>
 </section>
 
 <footer>
-  <span class="tape sm">STAIL · design mockup v0.1 · by Nanami &amp; Clara</span>
+  <span class="tape sm">STAIL · demo v0.2 · by Nanami &amp; Clara</span>
+  <p><button class="linkish" id="resetBtn" type="button">Reset demo</button></p>
 </footer>
 </main>
 
+<!-- working overlay -->
+<div class="busy" id="busy" hidden>
+  <div class="note busy-card" role="status" aria-live="polite">
+    <svg class="spark" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 4 C32 22 38 28 56 30 C38 32 32 38 30 56 C28 38 22 32 4 30 C22 28 28 22 30 4Z" fill="#E8386D"/></svg>
+    <p class="busy-t" id="busyTitle">STAIL is looking at your photos…</p>
+    <p id="busyMsg">This usually takes 10–60 seconds.</p>
+    <button class="btn btn-tape" id="busyStop" type="button">Stop</button>
+  </div>
+</div>
+
 <script>
-/* ---------- screen routing ---------- */
+/* =========================================================
+   helpers
+   ========================================================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hex=h=>/^#[0-9a-f]{6}$/i.test(String(h||'').trim())?String(h).trim():'#cccccc';
+const light=h=>{const n=parseInt(hex(h).slice(1),16);return (.2126*(n>>16&255)+.7152*(n>>8&255)+.0722*(n&255))/255>.62};
+const arr=(a,n)=>Array.isArray(a)?a.filter(x=>x!=null).slice(0,n):[];
+const pct=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0)));
+
+/* =========================================================
+   example data (used in demo mode and before any upload)
+   ========================================================= */
+const EXAMPLE_ANALYSIS={
+  color:{season:'Soft Summer',undertone:'Cool',
+    description:'Cool undertone, medium-light hair and soft grey-blue eyes. Muted, cool, gentle colours make your skin glow.',
+    best:[['rose','#C58BA4'],['denim','#8C9DBC'],['sage','#9BB3A6'],['lilac','#B7A2C4'],['plum','#7D5C74'],['shell','#E9DCD6'],['slate','#6E7F95'],['blush','#D9A6AF']].map(([name,hex])=>({name,hex})),
+    avoid:[['orange','#F28C1C'],['black','#111111'],['mustard','#E3D22C']].map(([name,hex])=>({name,hex})),
+    confidence:86,note:'Lighting was a bit warm. A daylight selfie would sharpen the result.'},
+  body:{type:'Hourglass',description:'Balanced shoulders and hips with a defined waist.',
+    wear:['Wrap dresses','Belted coats','High-waisted trousers'],avoid:['Boxy, shapeless cuts'],confidence:80},
+  tips:['Pair a lilac knit with sage wide-leg trousers','Swap black basics for slate or navy','Rose-gold and silver jewellery over yellow gold','Tuck in tops to show your waist']
+};
+const EXAMPLE_CLOSET=[
+  ['cream knit','top','cream','#EAD9C6'],['blue jeans','bottom','denim blue','#8C9DBC'],['rose skirt','skirt','dusty rose','#C58BA4'],
+  ['lilac dress','dress','lilac','#B7A2C4'],['trench','outer','taupe','#9D8A7A'],['white tee','top','white','#FAF7F2'],
+  ['sneakers','shoes','black','#2B2B2B'],['blush bag','bag','blush','#D9A6AF']
+].map(([name,category,colorName,colorHex],i)=>({id:'e'+(i+1),name,category,colorName,colorHex,example:true}));
+const ICON={top:'i-top',bottom:'i-pants',skirt:'i-skirt',dress:'i-dress',outer:'i-coat',shoes:'i-shoe',bag:'i-bag',accessory:'i-bag'};
+const OCC_KEYS={'Casual':'casual','Work / School':'work','Date night':'date','Party':'party','Travel':'travel'};
+
+/* =========================================================
+   state (+ per-browser persistence)
+   ========================================================= */
+const KEY='stail-demo-v2';
+let state;
+function fresh(){return{analysis:JSON.parse(JSON.stringify(EXAMPLE_ANALYSIS)),analysisSource:'example',closet:JSON.parse(JSON.stringify(EXAMPLE_CLOSET)),looks:[],occasion:'Casual'}}
+try{state=JSON.parse(localStorage.getItem(KEY))||fresh()}catch(e){state=fresh()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+
+/* =========================================================
+   AI (Claude via the artifact `sample` capability)
+   ========================================================= */
+let sample=null, imgLimits=null, aiReady=false;
+(async()=>{
+  try{
+    if(window.claude&&window.claude.use){
+      sample=await window.claude.use('sample');
+      if(sample){const l=await sample.limits().catch(()=>null);imgLimits=l&&l.images||null}
+    }
+  }catch(e){sample=null}
+  aiReady=true;updateMode();
+})();
+function aiOn(){return !!(sample&&imgLimits)}
+function updateMode(){
+  const m=$('#aiMode');
+  if(!aiReady){m.textContent='Checking whether AI is available…';return}
+  m.textContent=aiOn()?'✦ AI analysis is on':'Demo mode: AI isn’t available here, so STAIL shows example results';
+}
+function errText(e){
+  const c=e&&e.code;
+  if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed','images_unavailable'].includes(c)){
+    sample=null;updateMode();return'AI isn’t available in this view, so STAIL is showing example results.'}
+  if(c==='rate_limited')return'Too many requests right now. Wait a minute, then try again.';
+  if(c==='session_expired')return'Please sign in to Claude again, then retry.';
+  if(c==='image_rejected')return'One photo couldn’t be read. Try a JPEG or PNG under 20 MB.';
+  if(c==='refused')return'The AI couldn’t analyse that. Try a different photo.';
+  return'Something went wrong. Please try again.';
+}
+
+/* busy overlay with Stop */
+let ctl=null;
+function busy(on,title,msg){
+  $('#busy').hidden=!on;
+  if(on){$('#busyTitle').textContent=title;$('#busyMsg').textContent=msg||'This usually takes 10–60 seconds.'}
+}
+$('#busyStop').onclick=()=>ctl&&ctl.abort();
+
+/* ---- 1. selfie + full-body analysis ---- */
+async function analysePhotos(files,signal){
+  const lines=[];let n=1;
+  if(files.selfie)lines.push(`Image ${n++} is a SELFIE for colour analysis.`);
+  if(files.body)lines.push(`Image ${n++} is a FULL-BODY photo for body type analysis.`);
+  const prompt=`You are STAIL, a warm, body-positive personal stylist.
+${lines.join('\n')}
+Return ONLY JSON with this shape:
+{"color": {"season": "one of the 12 seasonal colour types, e.g. Soft Summer", "undertone": "Cool|Warm|Neutral", "description": "1-2 sentences on skin, hair and eye colouring", "best": [{"name": "short colour name", "hex": "#RRGGBB"}] (exactly 8), "avoid": [{"name": "...", "hex": "#RRGGBB"}] (exactly 3), "confidence": 0-100, "note": "one short sentence about photo quality or what would improve accuracy"},
+ "body": {"type": "Hourglass|Pear|Apple|Rectangle|Inverted Triangle", "description": "one neutral, kind sentence", "wear": ["3-4 short garment suggestions"], "avoid": ["1-2 short suggestions"], "confidence": 0-100},
+ "tips": ["4 short, specific styling tips that combine the results"]}
+Set "color" to null if there is no selfie, and "body" to null if there is no full-body photo. Describe bodies neutrally and never suggest changing them. If a photo shows no person or is unusable, set its part to null and say why in tips[0].`;
+  const images=[files.selfie,files.body].filter(Boolean);
+  const r=await sample.json(prompt,{images,signal});
+  return normAnalysis(r);
+}
+function normAnalysis(r){
+  r=r||{};const out={color:null,body:null,tips:arr(r.tips,6).map(String)};
+  if(r.color&&r.color.season){const c=r.color;out.color={season:String(c.season),undertone:String(c.undertone||''),description:String(c.description||''),
+    best:arr(c.best,8).map(s=>({name:String(s.name||''),hex:hex(s.hex)})),avoid:arr(c.avoid,4).map(s=>({name:String(s.name||''),hex:hex(s.hex)})),
+    confidence:pct(c.confidence),note:String(c.note||'')}}
+  if(r.body&&r.body.type){const b=r.body;out.body={type:String(b.type),description:String(b.description||''),wear:arr(b.wear,5).map(String),avoid:arr(b.avoid,3).map(String),confidence:pct(b.confidence)}}
+  return out;
+}
+
+/* ---- 2. tag wardrobe photos ---- */
+async function tagItems(files,signal){
+  const max=Math.max(1,(imgLimits&&imgLimits.maxCount)||1);const added=[];
+  for(let i=0;i<files.length;i+=max){
+    const chunk=files.slice(i,i+max);
+    const prompt=`These ${chunk.length} images each show ONE clothing item or accessory, in order.
+Return ONLY a JSON array with exactly ${chunk.length} objects, in the same order:
+{"name": "2-3 word name, e.g. cream knit cardigan", "category": "top|bottom|skirt|dress|outer|shoes|bag|accessory", "colorName": "short colour name", "colorHex": "#RRGGBB", "occasions": ["any of: casual, work, date, party, travel"]}`;
+    const r=await sample.json(prompt,{images:chunk,modelTier:'quick',signal});
+    const list=Array.isArray(r)?r:[];
+    for(let j=0;j<chunk.length;j++){
+      const t=list[j]||{};
+      added.push({id:'u'+Date.now().toString(36)+i+j,name:String(t.name||'item').slice(0,40),
+        category:ICON[t.category]?t.category:'accessory',colorName:String(t.colorName||''),colorHex:hex(t.colorHex),
+        occasions:arr(t.occasions,5).map(String),thumb:await thumb(chunk[j])});
+    }
+  }
+  return added;
+}
+function thumb(file){return new Promise(res=>{
+  const url=URL.createObjectURL(file);const img=new Image();
+  img.onload=()=>{const s=240/Math.max(img.width,img.height);const c=document.createElement('canvas');
+    c.width=Math.round(img.width*Math.min(1,s));c.height=Math.round(img.height*Math.min(1,s));
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    try{res(c.toDataURL('image/jpeg',.72))}catch(e){res(null)}};
+  img.onerror=()=>{URL.revokeObjectURL(url);res(null)};img.src=url;})}
+function addToCloset(items){
+  if(!items.length)return;
+  if(state.closet.some(i=>i.example))state.closet=state.closet.filter(i=>!i.example);
+  state.closet.push(...items);state.looks=[];save();
+}
+
+/* ---- 3. outfit generation ---- */
+async function aiLooks(occ,signal,fresh){
+  const c=state.analysis.color,b=state.analysis.body;
+  const prompt=`You are STAIL, a personal stylist. Build exactly 3 different outfits for the occasion "${occ}" using ONLY items from this wardrobe (refer to them by id):
+${state.closet.map(i=>`${i.id} | ${i.name} | ${i.category} | ${i.colorName}`).join('\n')}
+The person: colour season ${c?c.season:'unknown'}, body type ${b?b.type:'unknown'}.
+Rules: each outfit has 2-4 items; use either a dress, or a top with a bottom or skirt; add shoes, outerwear or a bag when they help; make the 3 outfits different. If the wardrobe is too small for 3, return fewer.
+Return ONLY JSON: {"looks": [{"title": "short look name", "items": ["id", "..."], "why": "one sentence on why it suits this person and occasion"}]}`;
+  const r=await sample.json(prompt,{modelTier:'quick',signal,cache:fresh?false:true});
+  const ids=new Set(state.closet.map(i=>i.id));
+  return arr(r&&r.looks,3).map(l=>({title:String(l.title||'Look'),items:arr(l.items,4).map(String).filter(id=>ids.has(id)),why:String(l.why||'')})).filter(l=>l.items.length);
+}
+const WHY={
+  'Casual':['Soft neutrals keep it relaxed but put-together.','Denim and cream is an easy everyday base.','A pop of rose flatters a cool undertone.'],
+  'Work / School':['A tucked knit defines the waist: polished, not stiff.','Outerwear adds structure for the day.','Muted tones read calm and confident.'],
+  'Date night':['Soft colour near the face lights it up.','A defined waist looks effortless.','Blush accents feel romantic, not loud.'],
+  'Party':['Tonal colours photograph beautifully.','Let one piece be the star.','Swap in your dressiest shoes.'],
+  'Travel':['Layers you can take off on the plane.','Comfortable shoes that still look cute.','Pieces that all mix with each other.']
+};
+function randomLooks(occ){
+  const by=cat=>state.closet.filter(i=>cat.includes(i.category));
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const tops=by(['top']),bottoms=by(['bottom','skirt']),dresses=by(['dress']),extras=by(['outer','bag','accessory']),shoes=by(['shoes']);
+  const out=[];
+  for(let k=0;k<3;k++){
+    let items=[];
+    if(dresses.length&&(Math.random()<.35||!tops.length||!bottoms.length))items.push(pick(dresses));
+    else if(tops.length&&bottoms.length)items.push(pick(tops),pick(bottoms));
+    else items.push(...state.closet.slice(0,2));
+    if(shoes.length)items.push(pick(shoes));
+    if(extras.length)items.push(pick(extras));
+    items=[...new Set(items.filter(Boolean))];
+    if(items.length)out.push({title:'Look '+(k+1),items:items.map(i=>i.id),why:WHY[occ][k]});
+  }
+  return out;
+}
+
+/* =========================================================
+   rendering
+   ========================================================= */
+function swatch(s){return `<div class="sw ${light(s.hex)?'light':''}" style="--c:${hex(s.hex)}">${esc(s.name)}</div>`}
+function renderResults(){
+  const a=state.analysis,c=a.color,b=a.body;
+  $('#resBadge').textContent=state.analysisSource==='ai'?'✦ analysed by AI':'example results';
+  $('#colorCard').innerHTML=c?`
+    <h3>Your Colour Season</h3>
+    <p class="season">${esc(c.season)}</p>
+    <p>${esc(c.undertone?c.undertone+' undertone. ':'')}${esc(c.description)}</p>
+    <p><strong>Best colours</strong></p>
+    <div class="swatches">${c.best.map(swatch).join('')}</div>
+    <p><strong>Try to avoid</strong></p>
+    <div class="swatches avoid">${c.avoid.map(swatch).join('')}</div>
+    <p style="font-size:1.1rem;margin-top:12px">Confidence</p>
+    <div class="meter" role="img" aria-label="Confidence ${c.confidence}%"><i style="width:${c.confidence}%"></i></div>
+    <p style="font-size:1.1rem">${c.confidence}%${c.note?' · '+esc(c.note):''} <a href="#dashboard" data-go="dashboard" style="color:inherit">Retake selfie?</a></p>`
+  :`<h3>Your Colour Season</h3><p>Upload a selfie to find your colour season and best colours.</p><button class="btn btn-primary" data-go="dashboard">Upload a selfie</button>`;
+  $('#bodyCard').innerHTML=b?`
+    <svg class="body-sil" viewBox="0 0 100 200" aria-hidden="true">
+      <circle cx="50" cy="20" r="14" fill="#F7CFE2" stroke="#9C1F57" stroke-width="2"/>
+      <path d="M30 40 Q50 34 70 40 Q66 70 58 80 Q72 100 72 118 L62 196 L52 196 L50 130 L48 196 L38 196 L28 118 Q28 100 42 80 Q34 70 30 40Z" fill="#F7CFE2" stroke="#9C1F57" stroke-width="2"/>
+    </svg>
+    <h3>Body Type: ${esc(b.type)}</h3>
+    <p style="margin:.2em 0">${esc(b.description)}</p>
+    <ul class="dots">${b.wear.map(w=>`<li>${esc(w)}</li>`).join('')}${b.avoid.map(w=>`<li>Skip: ${esc(w)}</li>`).join('')}</ul>`
+  :`<h3>Body Type</h3><p>Upload a full-body photo to find the silhouettes that suit you.</p><button class="btn btn-primary" data-go="dashboard">Upload a photo</button>`;
+  $('#tipsCard').innerHTML=`<h3>Styling Suggestions</h3>
+    <ul class="dots">${(a.tips.length?a.tips:['Add a photo to get personal tips.']).map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+    <div style="margin-top:14px"><button class="btn btn-primary" data-go="wardrobe">Style my wardrobe →</button></div>`;
+}
+function visual(i){
+  return i.thumb?`<img src="${esc(i.thumb)}" alt="">`:`<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#${ICON[i.category]||'i-bag'}" style="fill:${hex(i.colorHex)}"/></svg>`;
+}
+function renderCloset(){
+  const ex=state.closet.some(i=>i.example);
+  $('#closetTitle').textContent=`My closet · ${state.closet.length}`;
+  $('#closetNote').textContent=ex?'Example closet. Add photos of your own clothes to replace it.':'';
+  $('#closet').innerHTML=state.closet.map(i=>`
+    <div class="item"><div class="vis">${visual(i)}</div><span>${esc(i.name)}</span>
+      <button class="rm" data-rm="${esc(i.id)}" aria-label="Remove ${esc(i.name)}">×</button></div>`).join('')+
+    `<label class="item add" title="Add clothes">+<input type="file" id="closetAdd" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden></label>`;
+}
+function renderLooks(){
+  const byId=Object.fromEntries(state.closet.map(i=>[i.id,i]));
+  const cls=['note','grid-note','paper light'];
+  $('#looks').innerHTML=state.looks.map((l,k)=>`
+    <article class="look ${cls[k%3]}">
+      <button class="save" data-save="${k}" aria-pressed="${!!l.saved}" aria-label="Save look">${l.saved?'♥':'♡'}</button>
+      <h3>${esc(l.title)}</h3>
+      <div class="pieces">${l.items.map(id=>byId[id]).filter(Boolean).map(i=>`<div>${visual(i)}${esc(i.name)}</div>`).join('')}</div>
+      <p class="why">${esc(l.why)}</p>
+    </article>`).join('')||'<p class="closet-note">Pick an occasion to get looks.</p>';
+  document.querySelectorAll('#chips .chip').forEach(x=>x.setAttribute('aria-pressed',x.textContent===state.occasion));
+}
+function renderAll(){renderResults();renderCloset();renderLooks();updateMode()}
+
+/* =========================================================
+   actions
+   ========================================================= */
+const uploads={selfie:null,body:null,wardrobe:[]};
+function canAnalyse(){return $('#consent').checked&&(uploads.selfie||uploads.body||uploads.wardrobe.length)}
+document.querySelectorAll('[data-up]').forEach(inp=>{
+  const drop=inp.closest('.drop');
+  inp.addEventListener('change',()=>{
+    const fs=[...inp.files];if(!fs.length)return;
+    if(inp.dataset.up==='wardrobe'){uploads.wardrobe=fs;const c=$('#wardCount');c.hidden=false;c.textContent=fs.length+(fs.length>1?' items':' item')}
+    else uploads[inp.dataset.up]=fs[0];
+    let img=drop.querySelector('img.preview');
+    if(!img){img=document.createElement('img');img.className='preview';img.alt='';drop.prepend(img)}
+    img.src=URL.createObjectURL(fs[0]);drop.style.borderStyle='solid';
+    $('#analyzeBtn').disabled=!canAnalyse();
+  });
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,()=>drop.classList.add('drag')));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,()=>drop.classList.remove('drag')));
+});
+$('#consent').onchange=()=>$('#analyzeBtn').disabled=!canAnalyse();
+
+function showExample(){
+  state.analysis=JSON.parse(JSON.stringify(EXAMPLE_ANALYSIS));state.analysisSource='example';save();renderResults();go('results');
+}
+$('#exampleBtn').onclick=showExample;
+
+$('#analyzeBtn').onclick=async()=>{
+  if(!aiOn()){showExample();return}
+  ctl=new AbortController();const signal=ctl.signal;
+  busy(true,'STAIL is looking at your photos…');
+  const errs=[];
+  const jobs=[];
+  if(uploads.selfie||uploads.body)jobs.push(analysePhotos({selfie:uploads.selfie,body:uploads.body},signal)
+    .then(a=>{state.analysis=a;state.analysisSource='ai'}).catch(e=>{if(e.code!=='cancelled')errs.push(errText(e))}));
+  if(uploads.wardrobe.length)jobs.push(tagItems(uploads.wardrobe,signal).then(addToCloset).catch(e=>{if(e.code!=='cancelled')errs.push(errText(e))}));
+  await Promise.all(jobs);
+  busy(false);save();renderAll();
+  if(signal.aborted)return;
+  if(errs.length){$('#aiMode').textContent=errs[0];return}
+  go(uploads.selfie||uploads.body?'results':'wardrobe');
+};
+
+async function generate(freshAnswer){
+  const occ=state.occasion;
+  if(aiOn()&&state.closet.length>=2){
+    ctl=new AbortController();
+    busy(true,'STAIL is putting outfits together…','This usually takes a few seconds.');
+    try{const looks=await aiLooks(occ,ctl.signal,freshAnswer);state.looks=looks.length?looks:randomLooks(occ);$('#lookNote').textContent=''}
+    catch(e){if(e.code!=='cancelled'){$('#lookNote').textContent=errText(e);state.looks=randomLooks(occ)}}
+    busy(false);
+  }else{
+    state.looks=state.closet.length?randomLooks(occ):[];
+    $('#lookNote').textContent=state.closet.length?'':'Add clothes to your closet first.';
+  }
+  save();renderLooks();
+}
+document.querySelectorAll('#chips .chip').forEach(c=>c.onclick=()=>{state.occasion=c.textContent;generate(false)});
+$('#shuffle').onclick=()=>generate(true);
+
+document.addEventListener('change',async e=>{
+  if(e.target.id!=='closetAdd')return;
+  const fs=[...e.target.files];if(!fs.length)return;
+  if(!aiOn()){$('#closetNote').textContent='Adding clothes needs AI, which isn’t available in this view.';return}
+  ctl=new AbortController();busy(true,'STAIL is sorting your clothes…','Tagging each item’s type and colour.');
+  try{addToCloset(await tagItems(fs,ctl.signal))}catch(err){if(err.code!=='cancelled')$('#closetNote').textContent=errText(err)}
+  busy(false);renderCloset();renderLooks();
+});
+document.addEventListener('click',e=>{
+  const rm=e.target.closest('[data-rm]');
+  if(rm){state.closet=state.closet.filter(i=>i.id!==rm.dataset.rm);state.looks=state.looks.map(l=>({...l,items:l.items.filter(id=>id!==rm.dataset.rm)})).filter(l=>l.items.length);save();renderCloset();renderLooks();return}
+  const sv=e.target.closest('[data-save]');
+  if(sv){const l=state.looks[+sv.dataset.save];l.saved=!l.saved;save();renderLooks()}
+});
+$('#resetBtn').onclick=()=>{try{localStorage.removeItem(KEY)}catch(e){}state=fresh();state.looks=randomLooks(state.occasion);save();renderAll();go('welcome')};
+
+/* =========================================================
+   screen routing + auth tabs
+   ========================================================= */
 const screens=[...document.querySelectorAll('.screen')];
 function go(id,scroll=true){
   if(!document.getElementById(id)) id='welcome';
@@ -979,77 +1258,17 @@ document.addEventListener('click',e=>{
   const a=e.target.closest('[data-go-auth]');
   if(a){setAuth(a.dataset.goAuth);document.getElementById('auth').scrollIntoView({behavior:'smooth',block:'center'})}
 });
-go(location.hash.slice(1)||'welcome',false);
-window.addEventListener('hashchange',()=>go(location.hash.slice(1)));
-
-/* ---------- auth tabs ---------- */
 function setAuth(mode){
   document.querySelectorAll('[data-auth]').forEach(b=>b.setAttribute('aria-selected',b.dataset.auth===mode));
-  document.querySelectorAll('[data-only="signup"]').forEach(el=>el.style.display=mode==='signup'?'':'none');
+  document.querySelectorAll('[data-only="signup"]').forEach(el=>el.hidden=mode!=='signup');
   document.getElementById('authSubmit').textContent=mode==='signup'?'Create my account':'Log in';
 }
 document.querySelectorAll('[data-auth]').forEach(b=>b.onclick=()=>setAuth(b.dataset.auth));
 
-/* ---------- uploads (local preview only) ---------- */
-document.querySelectorAll('[data-up]').forEach(inp=>{
-  const drop=inp.closest('.drop');
-  inp.addEventListener('change',()=>{
-    const f=inp.files[0]; if(!f) return;
-    let img=drop.querySelector('img.preview');
-    if(!img){img=document.createElement('img');img.className='preview';img.alt='';drop.prepend(img)}
-    img.src=URL.createObjectURL(f);
-    drop.style.borderStyle='solid';
-  });
-  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,()=>drop.classList.add('drag')));
-  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,()=>drop.classList.remove('drag')));
-});
-const consent=document.getElementById('consent'),analyze=document.getElementById('analyzeBtn');
-consent.onchange=()=>analyze.disabled=!consent.checked;
-analyze.onclick=()=>{analyze.textContent='✦ Analysing… ✦';setTimeout(()=>{analyze.textContent='✦ Analyse me ✦';go('results')},900)};
-
-/* ---------- wardrobe styler (fake generator) ---------- */
-const closet={
-  top:[['i-top','#EAD9C6','cream knit'],['i-top','#FAF7F2','white tee']],
-  bottom:[['i-pants','#8C9DBC','blue jeans'],['i-skirt','#C58BA4','rose skirt']],
-  one:[['i-dress','#B7A2C4','lilac dress']],
-  outer:[['i-coat','#9D8A7A','trench']],
-  shoe:[['i-shoe','#2B2B2B','sneakers']],
-  bag:[['i-bag','#D9A6AF','blush bag']],
-};
-const whys={
-  'Casual':['Soft neutrals keep it relaxed but put-together.','Denim + cream is your easy everyday base.','A pop of rose flatters your cool undertone.'],
-  'Work / School':['Tucked knit defines your waist: polished, not stiff.','Trench adds structure for meetings.','Muted tones read calm and confident.'],
-  'Date night':['Lilac is one of your best colours: it lights up your face.','Wrap shapes celebrate your hourglass figure.','Blush accents feel romantic, not loud.'],
-  'Party':['Rose skirt + blush bag is a tonal, photo-ready look.','Let the dress be the star; keep the rest simple.','Swap sneakers for heels if you own them!'],
-  'Travel':['Layers you can peel off on the plane.','Comfortable sneakers, still cute.','All pieces mix with each other.'],
-};
-const pick=a=>a[Math.floor(Math.random()*a.length)];
-let occasion='Casual';
-function piece([id,c,l]){return `<div><svg viewBox="0 0 100 100"><use href="#${id}" style="fill:${c}"/></svg>${l}</div>`}
-function render(){
-  const cls=['note','grid-note','paper light'];
-  document.getElementById('looks').innerHTML=[0,1,2].map(i=>{
-    const useDress=Math.random()<.35;
-    const parts=useDress?[pick(closet.one),pick(closet.outer),pick(closet.shoe),pick(closet.bag)]
-                        :[pick(closet.top),pick(closet.bottom),pick(closet.shoe),Math.random()<.5?pick(closet.outer):pick(closet.bag)];
-    return `<article class="look ${cls[i]}">
-      <button class="save" aria-pressed="false" aria-label="Save look">♡</button>
-      <h3>Look ${i+1}</h3>
-      <div class="pieces">${parts.map(piece).join('')}</div>
-      <p class="why">${whys[occasion][i]}</p>
-    </article>`}).join('');
-}
-document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
-  document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===c));
-  occasion=c.textContent;render();
-});
-document.getElementById('shuffle').onclick=render;
-document.getElementById('looks').addEventListener('click',e=>{
-  const s=e.target.closest('.save'); if(!s) return;
-  const on=s.getAttribute('aria-pressed')!=='true';
-  s.setAttribute('aria-pressed',on); s.textContent=on?'♥':'♡';
-});
-render();
+if(!state.looks.length)state.looks=randomLooks(state.occasion);
+renderAll();
+go(location.hash.slice(1)||'welcome',false);
+window.addEventListener('hashchange',()=>go(location.hash.slice(1)));
 </script>
 </body>
 </html>
