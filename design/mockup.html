@@ -395,6 +395,9 @@ ul.todo li::before{content:"";position:absolute;left:.1em;top:.35em;width:.85em;
 footer{text-align:center;margin-top:70px}
 
 /* ---------- AI demo additions ---------- */
+.ai-pill{font-weight:700;font-size:1.05rem;padding:.05em .7em;background:var(--noise),var(--sticky);clip-path:var(--jag);max-width:100%}
+.ai-pill.on{background:var(--noise),var(--fabric);color:#fff}
+.diag{display:block;font-family:ui-monospace,Consolas,monospace;font-size:.8rem;opacity:.75;margin-top:4px;word-break:break-all}
 .item .vis{aspect-ratio:1;background:#F5EEE6;overflow:hidden}
 .item .vis svg,.item .vis img{width:100%;height:100%;display:block;object-fit:cover;background:none;aspect-ratio:auto}
 .item .rm{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;border:0;background:var(--magenta);color:#fff;font-size:1rem;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s}
@@ -493,6 +496,7 @@ footer{text-align:center;margin-top:70px}
     <button data-go="dashboard">Upload</button>
     <button data-go="results">My Analysis</button>
     <button data-go="wardrobe">Wardrobe Styler</button>
+    <span class="ai-pill" id="aiPill">AI: checking…</span>
   </div>
 </nav>
 
@@ -979,17 +983,18 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
 /* =========================================================
    AI (Claude via the artifact `sample` capability)
    ========================================================= */
-let sample=null, imgLimits=null, aiReady=false, aiWhy='';
+let sample=null, imgLimits=null, aiReady=false, aiWhy='', aiDiag='';
 const aiInit=(async()=>{
   try{
     if(!(window.claude&&window.claude.use)){aiWhy='this page was opened outside the Claude viewer';}
     else{
       sample=await window.claude.use('sample');
       if(!sample)aiWhy='Claude isn’t available in this view (try opening the link in a browser at claude.ai while signed in)';
-      else{const l=await sample.limits().catch(()=>null);imgLimits=l&&l.images||null;
+      else{const l=await sample.limits().catch(e=>({error:e&&e.code||String(e)}));imgLimits=l&&l.images||null;aiDiag='limits='+JSON.stringify(l);
         if(!imgLimits)aiWhy='this view can’t send photos to Claude (try a desktop browser at claude.ai)';}
     }
-  }catch(e){sample=null;aiWhy='AI failed to start'}
+  }catch(e){sample=null;aiWhy='AI failed to start';aiDiag='error='+(e&&e.message||e)}
+  aiDiag=`claude=${typeof window.claude} use=${typeof (window.claude&&window.claude.use)} sample=${sample?'yes':'null'} `+aiDiag;
   aiReady=true;updateMode();
 })();
 function aiOn(){return !!(sample&&imgLimits)}
@@ -997,6 +1002,9 @@ function updateMode(){
   const m=$('#aiMode');
   if(!aiReady){m.textContent='Checking whether AI is available…';return}
   m.textContent=aiOn()?'✦ AI analysis is on':'Demo mode: '+(aiWhy||'AI isn’t available here')+'. STAIL will show example results.';
+  if(!aiOn()){const d=document.createElement('small');d.className='diag';d.textContent=aiDiag;m.append(d)}
+  const pill=$('#aiPill');pill.classList.toggle('on',aiOn());
+  pill.textContent=aiOn()?'AI: on ✦':'AI: off';pill.title=aiOn()?'':aiWhy+' · '+aiDiag;
 }
 function errText(e){
   const c=e&&e.code;
