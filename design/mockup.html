@@ -395,6 +395,10 @@ ul.todo li::before{content:"";position:absolute;left:.1em;top:.35em;width:.85em;
 footer{text-align:center;margin-top:70px}
 
 /* ---------- AI demo additions ---------- */
+.looks.fresh .look{animation:dealt .6s ease backwards}
+.looks.fresh .look:nth-child(2){animation-delay:.12s}
+.looks.fresh .look:nth-child(3){animation-delay:.24s}
+@keyframes dealt{from{opacity:0;transform:translateY(24px) rotate(4deg) scale(.96)}}
 .textmode{display:grid;grid-template-columns:1.2fr 1fr;gap:34px;margin-top:50px;align-items:start}
 @media (max-width:860px){.textmode{grid-template-columns:1fr}}
 .hint{font-size:1.15rem;margin:.2em 0 .6em}
@@ -1213,10 +1217,12 @@ function addToCloset(items){
 /* ---- 3. outfit generation ---- */
 async function aiLooks(occ,signal,fresh){
   const c=state.analysis.color,b=state.analysis.body;
+  const avoid=fresh?state.looks.map(l=>l.items.slice().sort().join(' + ')):[];
   const prompt=`You are STAIL, a personal stylist. Build exactly 3 different outfits for the occasion "${occ}" using ONLY items from this wardrobe (refer to them by id):
 ${state.closet.map(i=>`${i.id} | ${i.name} | ${i.category} | ${i.colorName}`).join('\n')}
 The person: colour season ${c?c.season:'unknown'}, body type ${b?b.type:'unknown'}.
 Rules: each outfit has 2-4 items; use either a dress, or a top with a bottom or skirt; add shoes, outerwear or a bag when they help; make the 3 outfits different. If the wardrobe is too small for 3, return fewer.
+${avoid.length?'The user asked for NEW ideas, so do not repeat these combinations:\n'+avoid.join('\n'):''}
 Return ONLY JSON: {"looks": [{"title": "short look name", "items": ["id", "..."], "why": "one sentence on why it suits this person and occasion"}]}`;
   const r=await sample.json(prompt,{modelTier:'quick',signal,cache:fresh?false:true});
   const ids=new Set(state.closet.map(i=>i.id));
@@ -1367,7 +1373,9 @@ async function generate(freshAnswer){
   if(aiOn()&&state.closet.length>=2){
     ctl=new AbortController();
     busy(true,'STAIL is putting outfits together…','This usually takes a few seconds.');
-    try{const looks=await aiLooks(occ,ctl.signal,freshAnswer);state.looks=looks.length?looks:randomLooks(occ);$('#lookNote').textContent=''}
+    try{const looks=await aiLooks(occ,ctl.signal,freshAnswer);state.looks=looks.length?looks:randomLooks(occ);
+      $('#lookNote').textContent=looks.length?`✦ ${looks.length} new ${occ} looks by AI · ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:'AI couldn’t build looks from this closet, so here are quick picks.';
+      justMade=true}
     catch(e){if(e.code!=='cancelled'){$('#lookNote').textContent=errText(e);state.looks=randomLooks(occ)}}
     busy(false);
   }else{
@@ -1375,7 +1383,9 @@ async function generate(freshAnswer){
     $('#lookNote').textContent=state.closet.length?'':'Add clothes to your closet first.';
   }
   save();renderLooks();
+  if(justMade){justMade=false;const L=$('#looks');L.classList.remove('fresh');void L.offsetWidth;L.classList.add('fresh');$('#lookNote').scrollIntoView({behavior:'smooth',block:'start'})}
 }
+let justMade=false;
 document.querySelectorAll('#chips .chip').forEach(c=>c.onclick=()=>{state.occasion=c.textContent;generate(false)});
 $('#shuffle').onclick=()=>generate(true);
 
